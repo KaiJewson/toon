@@ -1,0 +1,30 @@
+[package]
+name = "toon"
+version = "0.1.0"
+authors = ["KaiJewson <kai.jewson@gmail.com>"]
+edition = "2018"
+description = "A simple, declarative and modular TUI library."
+readme = "README.md"
+repository = "https://github.com/KaiJewson/toon"
+license = "MIT OR Apache-2.0"
+keywords = ["tui", "ui", "terminal"]
+categories = ["command-line-interface", "gui"]
+
+[package.metadata.docs.rs]
+all-features = true
+
+[dependencies]
+futures-util = "0.3.6"
+smartstring = "0.2.5"
+unicode-width = "0.1.8"
+
+crossterm_crate = { package = "crossterm", version = "0.18.0", features = ["event-stream"], optional = true }
+
+[dev-dependencies]
+smol = "1.2.4"
+
+[features]
+default = ["crossterm"]
+crossterm = ["crossterm_crate"]
+# Used for #[doc(cfg)]
+nightly = []
