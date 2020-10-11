@@ -33,6 +33,10 @@ impl<B: Backend> Terminal<B> {
     /// # Panics
     ///
     /// Panics if a terminal already exists.
+    ///
+    /// # Errors
+    ///
+    /// Fails if setting up the terminal fails.
     pub fn new(config: B::Config) -> Result<Self, B::Error> {
         if TERMINAL_EXISTS.swap(true, Ordering::Acquire) {
             panic!("Terminal already exists!");
@@ -66,6 +70,10 @@ impl<B: Backend> Terminal<B> {
     ///
     /// The future produced by this function can be dropped, in which case the terminal will stop
     /// reading events.
+    ///
+    /// # Errors
+    ///
+    /// Fails when drawing to the backend fails.
     pub async fn draw<Event, E: Element<Event>>(&mut self, element: E) -> Result<Event, B::Error> {
         loop {
             element.draw(&mut self.buffer);
@@ -209,6 +217,10 @@ impl<B: Backend> Terminal<B> {
     ///
     /// This will be called in the destructor too, but use this if you want to handle errors
     /// instead of ignoring them.
+    ///
+    /// # Errors
+    ///
+    /// Fails if cleaning up the backend fails.
     pub fn cleanup(mut self) -> Result<(), B::Error> {
         self.backend.reset()?;
         self.backend_reset = true;
@@ -245,7 +257,7 @@ fn test_diff_grid() {
         Attributes {
             intensity: Intensity::Bold,
             underlined: true,
-            ..Default::default()
+            ..Attributes::default()
         },
     );
 

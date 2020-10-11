@@ -22,6 +22,7 @@ pub use self::dummy::*;
 ///
 /// Backends should buffer operations and flush them with `flush`. Since `Tty` uses a `BufWriter`
 /// internally this will often not have to be done manually.
+#[allow(clippy::missing_errors_doc)]
 pub trait Backend: Sized + for<'a> ReadEvents<'a, EventError = <Self as Backend>::Error> {
     /// Type for configuring the backend.
     type Config;

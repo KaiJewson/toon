@@ -1,6 +1,13 @@
 //! A simple, declarative, and modular TUI library.
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![warn(clippy::pedantic, rust_2018_idioms)]
+#![allow(
+    clippy::module_name_repetitions,
+    // `as u16` is used when we need to get the width of a string that is guaranteed not to exceed
+    // u16.
+    clippy::cast_possible_truncation,
+    clippy::non_ascii_literal
+)]
 
 use std::fmt::{self, Display, Write as _};
 
@@ -126,7 +133,7 @@ pub trait Output {
     /// Clear the output with one color.
     fn clear(&mut self, color: Color) {
         let size = self.size();
-        let style = Style::new(Default::default(), color, Default::default());
+        let style = Style::new(Color::default(), color, Attributes::default());
 
         for x in 0..size.x {
             for y in 0..size.y {

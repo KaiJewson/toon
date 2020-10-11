@@ -150,6 +150,7 @@ macro_rules! attribute_fn {
     ($(#[doc = $doc:literal] $name:ident($property:ident = $value:expr),)*) => {
         $(
             #[doc = $doc]
+            #[must_use]
             pub const fn $name(self) -> Self {
                 Self {
                     $property: $value,
@@ -162,6 +163,7 @@ macro_rules! attribute_fn {
 
 impl Attributes {
     /// Default attributes.
+    #[must_use]
     pub const fn new() -> Self {
         Self {
             intensity: Intensity::Normal,

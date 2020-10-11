@@ -242,7 +242,7 @@ impl Output for Line {
             Some(1) => {
                 let cell = match self.cells.get_mut(x) {
                     Some(cell) => cell,
-                    _ => return,
+                    None => return,
                 };
                 let old_cell = std::mem::replace(
                     cell,
@@ -265,6 +265,7 @@ impl Output for Line {
                             style: old_style,
                         };
                     }
+                    Cell::Char { .. } => {}
                     Cell::Continuation => match &mut self.cells[x - 1] {
                         Cell::Char {
                             contents,
@@ -276,13 +277,12 @@ impl Output for Line {
                         }
                         _ => unreachable!(),
                     },
-                    _ => {}
                 }
             }
             Some(2) => {
                 let second_cell = match self.cells.get_mut(x + 1) {
                     Some(cell) => cell,
-                    _ => return,
+                    None => return,
                 };
 
                 let old_second = std::mem::replace(second_cell, Cell::Continuation);
@@ -377,10 +377,11 @@ pub enum Cell {
 #[cfg(test)]
 #[test]
 fn test_line() {
+    use std::convert::TryFrom;
     use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
     fn assert_invariants(line: &Line) {
-        assert!(line.cells.len() <= usize::from(u16::MAX));
+        assert!(u16::try_from(line.cells.len()).is_ok());
 
         let mut continuation = false;
         for (x, cell) in line.cells.iter().enumerate() {

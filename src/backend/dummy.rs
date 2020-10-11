@@ -216,10 +216,9 @@ impl<'a> ReadEvents<'a> for Dummy {
     type EventFuture = future::Either<future::Ready<EventResult>, future::Pending<EventResult>>;
 
     fn read_event(&'a mut self) -> Self::EventFuture {
-        if let Some(event) = self.events.pop_front() {
-            future::Either::Left(future::ready(Ok(event)))
-        } else {
-            future::Either::Right(future::pending())
-        }
+        self.events.pop_front().map_or_else(
+            || future::Either::Right(future::pending()),
+            |event| future::Either::Left(future::ready(Ok(event))),
+        )
     }
 }
