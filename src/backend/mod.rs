@@ -15,7 +15,7 @@ mod crossterm;
 mod dummy;
 
 #[cfg(feature = "crossterm")]
-pub use self::crossterm::{Crossterm, Config as CrosstermConfig};
+pub use self::crossterm::{Config as CrosstermConfig, Crossterm};
 pub use self::dummy::*;
 
 /// A backend that can be used with Toon.

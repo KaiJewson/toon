@@ -17,10 +17,7 @@ pub trait Ext<E>: sealed::Sealed {
 
 impl<E> Ext<E> for dyn Events<E> {
     fn map<F: Fn(E2) -> E, E2>(&mut self, f: F) -> Map<'_, E, F> {
-        Map {
-            inner: self,
-            f,
-        }
+        Map { inner: self, f }
     }
 }
 

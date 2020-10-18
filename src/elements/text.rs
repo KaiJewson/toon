@@ -2,7 +2,7 @@ use std::fmt::{Display, Write};
 
 use unicode_width::UnicodeWidthChar;
 
-use crate::{Vec2, Element, Output, Style, Input, Events};
+use crate::{Element, Events, Input, Output, Style, Vec2};
 
 /// A single line of text.
 ///
@@ -10,21 +10,22 @@ use crate::{Vec2, Element, Output, Style, Input, Events};
 /// convert it to a string beforehand.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Text<T> {
-    /// The type being displayed.
-    pub item: T,
-    /// The style it is displayed with.
-    pub style: Style,
+    item: T,
+    style: Style,
 }
 
 impl<T> Text<T> {
-    /// Create a line of text with the a style.
+    /// Create a line of text with the given style.
     #[must_use]
     pub fn new(item: T, style: Style) -> Self {
-        Self {
-            item,
-            style,
-        }
+        Self { item, style }
     }
+}
+
+/// Shortcut function for `Text::new`.
+#[must_use]
+pub fn text<T>(item: T, style: Style) -> Text<T> {
+    Text::new(item, style)
 }
 
 impl<T: Display, E> Element<E> for Text<T> {
@@ -33,7 +34,12 @@ impl<T: Display, E> Element<E> for Text<T> {
     }
     fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
         let mut width = 0;
-        write!(crate::util::WriteCharsFn(|c| width += c.width().unwrap_or(0) as u16), "{}", self.item).expect("formatting failed");
+        write!(
+            crate::util::WriteCharsFn(|c| width += c.width().unwrap_or(0) as u16),
+            "{}",
+            self.item
+        )
+        .expect("formatting failed");
 
         Vec2::new(width, 0)
     }

@@ -1,4 +1,22 @@
 //! A simple, declarative, and modular TUI library.
+//!
+//! # Examples
+//!
+//! Display `Hello World!` on the terminal using the Crossterm backend:
+//!
+//! ```no_run
+//! # async {
+//! use toon::{Crossterm, CrosstermConfig, Terminal, ElementExt};
+//!
+//! let mut terminal: Terminal<Crossterm> = Terminal::new(CrosstermConfig::default())?;
+//!
+//! terminal
+//!     .draw(toon::text("Hello World!", toon::Style::default()).on('q', ()))
+//!     .await?;
+//!
+//! terminal.cleanup()
+//! # };
+//! ```
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![warn(clippy::pedantic, rust_2018_idioms, missing_docs)]
 #![allow(
@@ -29,8 +47,8 @@ pub mod events;
 pub mod input;
 pub mod style;
 mod terminal;
-mod vec2;
 mod util;
+mod vec2;
 
 /// An element on the screen.
 ///

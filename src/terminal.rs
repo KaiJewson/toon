@@ -68,7 +68,7 @@ impl<B: Backend> Terminal<B> {
     /// all be returned, but this function will never return an empty vector.
     ///
     /// The future produced by this function can be dropped, in which case the terminal will stop
-    /// reading events.
+    /// reading input.
     ///
     /// # Errors
     ///
@@ -315,6 +315,7 @@ fn test_diff_grid() {
             Operation::SetIntensity(Intensity::Bold),
             Operation::SetUnderlined(true),
             Operation::Write("😃".to_owned()),
+            Operation::SetBackground(Color::Default),
         ],
     );
 }

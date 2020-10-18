@@ -10,7 +10,7 @@ use crossterm_crate as crossterm;
 use futures_util::future::{self, FutureExt};
 use futures_util::stream::{self, StreamExt};
 
-use crate::input::{Input, Key, KeyPress, Modifiers, MouseButton, Mouse, MouseKind};
+use crate::input::{Input, Key, KeyPress, Modifiers, Mouse, MouseButton, MouseKind};
 use crate::style::{Color, Intensity, Rgb};
 use crate::{CursorShape, Vec2};
 
@@ -209,7 +209,7 @@ fn to_crossterm_color(color: Color) -> CColor {
         Color::DarkMagenta => CColor::DarkMagenta,
         Color::Cyan => CColor::Cyan,
         Color::DarkCyan => CColor::DarkCyan,
-        Color::AnsiValue(v) => CColor::AnsiValue(v),
+        Color::AnsiValue(v) => CColor::AnsiValue(v.get()),
         Color::Rgb(Rgb { r, g, b }) => CColor::Rgb { r, g, b },
     }
 }

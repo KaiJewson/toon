@@ -2,33 +2,39 @@
 
 use crate::{Element, Input};
 
+mod filter;
 mod text;
-mod on;
 
+pub use filter::*;
 pub use text::*;
-pub use on::*;
 
 /// An extension trait for elements providing useful methods.
-pub trait ElementExt<E>: Element<E> + Sized {
+pub trait ElementExt<Event>: Element<Event> + Sized {
+    /// Filter this element using the given filter.
+    ///
+    /// Shortcut method for `Filtered::new(element, filter)`.
+    fn filter<F: Filter<Event>>(self, filter: F) -> Filtered<Self, F> {
+        Filtered::new(self, filter)
+    }
+
     /// Trigger an event when an input occurs.
-    fn on(self, input: impl Into<Input>, event: E) -> On<Self, E>;
+    ///
+    /// Shortcut method for `.filter(toon::on(...))`.
+    fn on(self, input: impl Into<Input>, event: Event) -> Filtered<Self, On<Event>>
+    where
+        Event: Clone,
+    {
+        self.filter(crate::on(input, event))
+    }
 
     /// Erase the element's type by boxing it.
-    fn boxed<'a>(self) -> Box<dyn Element<E> + 'a>
+    fn boxed<'a>(self) -> Box<dyn Element<Event> + 'a>
     where
         Self: 'a;
 }
 
-impl<E, T: Element<E>> ElementExt<E> for T {
-    fn on(self, input: impl Into<Input>, event: E) -> On<Self, E> {
-        On {
-            element: self,
-            input: input.into(),
-            event,
-        }
-    }
-
-    fn boxed<'a>(self) -> Box<dyn Element<E> + 'a>
+impl<Event, T: Element<Event>> ElementExt<Event> for T {
+    fn boxed<'a>(self) -> Box<dyn Element<Event> + 'a>
     where
         Self: 'a,
     {

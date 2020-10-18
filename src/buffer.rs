@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::iter;
 use unicode_width::UnicodeWidthChar;
 
-use crate::{Cursor, Element, Output, Style, Vec2, Input, Events};
+use crate::{Cursor, Element, Events, Input, Output, Style, Vec2};
 
 /// A terminal state.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
