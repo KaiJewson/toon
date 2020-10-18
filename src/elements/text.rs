@@ -7,7 +7,22 @@ use crate::{Element, Events, Input, Output, Style, Vec2};
 /// A single line of text.
 ///
 /// It takes any type that implements `Display`. If your `Display` impl is costly, you may want to
-/// convert it to a string beforehand.
+/// convert it to a string beforehand. Otherwise you will probably want to use
+/// [`format_args!`](https://doc.rust-lang.org/stable/core/macro.format_args.html) to generate the
+/// type since it avoids allocation.
+///
+/// # Examples
+///
+/// ```
+/// # async {
+/// use toon::ElementExt;
+/// # let mut terminal = toon::Terminal::new(toon::Crossterm::default())?;
+///
+/// // Display `Hello World!` until q is pressed
+/// terminal.draw(toon::text("Hello World!", toon::Style::default()).on('q', ())).await?;
+/// # Ok::<_, <toon::Crossterm as toon::Backend>::Error>(())
+/// # };
+/// ```
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Text<T> {
     item: T,
@@ -22,7 +37,9 @@ impl<T> Text<T> {
     }
 }
 
-/// Shortcut function for `Text::new`.
+/// Create a single line of text.
+///
+/// Shortcut function for [`Text::new`](struct.Text.html#method.new).
 #[must_use]
 pub fn text<T>(item: T, style: Style) -> Text<T> {
     Text::new(item, style)

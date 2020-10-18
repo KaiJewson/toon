@@ -1,6 +1,6 @@
 //! A counter that can be incremented by pressing space.
 
-use toon::{Attributes, Color, Crossterm, CrosstermConfig, ElementExt, Style, Terminal};
+use toon::{Attributes, Color, Crossterm, ElementExt, Style, Terminal};
 
 #[derive(Clone, Copy)]
 enum Event {
@@ -10,7 +10,7 @@ enum Event {
 
 fn main() {
     let res = smol::block_on(async {
-        let mut terminal: Terminal<Crossterm> = Terminal::new(CrosstermConfig::default())?;
+        let mut terminal = Terminal::new(Crossterm::default())?;
 
         let mut counter: usize = 0;
 

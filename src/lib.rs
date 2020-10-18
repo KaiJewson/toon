@@ -4,11 +4,11 @@
 //!
 //! Display `Hello World!` on the terminal using the Crossterm backend:
 //!
-//! ```no_run
+//! ```
 //! # async {
-//! use toon::{Crossterm, CrosstermConfig, Terminal, ElementExt};
+//! use toon::{Crossterm, Terminal, ElementExt};
 //!
-//! let mut terminal: Terminal<Crossterm> = Terminal::new(CrosstermConfig::default())?;
+//! let mut terminal = Terminal::new(Crossterm::default())?;
 //!
 //! terminal
 //!     .draw(toon::text("Hello World!", toon::Style::default()).on('q', ()))
@@ -18,7 +18,13 @@
 //! # };
 //! ```
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
-#![warn(clippy::pedantic, rust_2018_idioms, missing_docs)]
+#![warn(
+    clippy::pedantic,
+    rust_2018_idioms,
+    missing_docs,
+    unused_qualifications,
+    missing_debug_implementations
+)]
 #![allow(
     // `as u16` is used when we need to get the width of a string that is guaranteed not to exceed
     // u16.
@@ -31,7 +37,11 @@ use std::fmt::{Display, Write as _};
 pub use smartstring;
 use unicode_width::UnicodeWidthChar;
 
-pub use backend::*;
+#[cfg(feature = "crossterm")]
+#[doc(no_inline)]
+pub use backend::Crossterm;
+#[doc(no_inline)]
+pub use backend::{Backend, Dummy};
 pub use buffer::*;
 pub use elements::*;
 pub use events::Events;
@@ -53,6 +63,9 @@ mod vec2;
 /// An element on the screen.
 ///
 /// Elements are cheap, immutable, borrowed and short-lived. They usually implement `Copy`.
+///
+/// You shouldn't generally have to implement this trait yourself unless you're doing something
+/// really niche. Instead, combine elements from the [`elements`](elements/index.html) module.
 pub trait Element<Event> {
     /// Draw the element to the output.
     fn draw(&self, output: &mut dyn Output);

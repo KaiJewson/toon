@@ -20,12 +20,6 @@ impl<Event> On<Event> {
     }
 }
 
-/// Shortcut function for `On::new`.
-#[must_use]
-pub fn on<Event>(input: impl Into<Input>, event: Event) -> On<Event> {
-    On::new(input, event)
-}
-
 impl<Event: Clone> Filter<Event> for On<Event> {
     fn handle(&self, element: &dyn Element<Event>, input: Input, events: &mut dyn Events<Event>) {
         if input == self.input {

@@ -1,6 +1,6 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use crate::backend::{Backend, TerminalEvent, Tty};
+use crate::backend::{Backend, Bound, ReadEvents, TerminalEvent, Tty};
 use crate::buffer::{Buffer, Cell, Grid};
 use crate::{Color, Element, Input, Intensity, Output, Style, Vec2};
 
@@ -8,11 +8,13 @@ static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 
 /// A terminal which can draw elements to a backend.
 ///
-/// Only one terminal may exist at once; attempting to create more than one at once will panic.
+/// For backends that modify the terminal state (i.e. everything but
+/// [`Dummy`](backend/struct.Dummy.html)) only one terminal may exist at once; attempting to
+/// create more than one at once will panic.
 #[derive(Debug)]
 pub struct Terminal<B: Backend> {
     /// Only `None` during destruction of the type.
-    backend: Option<B>,
+    backend: Option<B::Bound>,
     /// Holds the previous frame to diff against.
     old_buffer: Buffer,
     /// Is always a clear buffer, kept around to avoid cloning the buffer each draw.
@@ -31,17 +33,17 @@ impl<B: Backend> Terminal<B> {
     ///
     /// # Panics
     ///
-    /// Panics if a terminal already exists.
+    /// Panics if the backend modifies the terminal state and a terminal already exists.
     ///
     /// # Errors
     ///
     /// Fails if setting up the terminal fails.
-    pub fn new(config: B::Config) -> Result<Self, B::Error> {
-        if TERMINAL_EXISTS.swap(true, Ordering::Acquire) {
+    pub fn new(backend: B) -> Result<Self, B::Error> {
+        if !B::supports_multiple() && TERMINAL_EXISTS.swap(true, Ordering::Acquire) {
             panic!("Terminal already exists!");
         }
 
-        let mut backend = B::new(config, Tty::new())?;
+        let mut backend = backend.bind(Tty::new())?;
 
         backend.hide_cursor()?;
         backend.set_cursor_pos(Vec2::default())?;
@@ -213,13 +215,13 @@ impl<B: Backend> Terminal<B> {
 
     /// Get a reference to the terminal's backend.
     #[must_use]
-    pub fn backend(&self) -> &B {
+    pub fn backend(&self) -> &B::Bound {
         self.backend.as_ref().unwrap()
     }
 
     /// Get a mutable reference to the terminal's backend.
     #[must_use]
-    pub fn backend_mut(&mut self) -> &mut B {
+    pub fn backend_mut(&mut self) -> &mut B::Bound {
         self.backend.as_mut().unwrap()
     }
 
@@ -248,14 +250,16 @@ impl<B: Backend> Drop for Terminal<B> {
     fn drop(&mut self) {
         let _ = self.cleanup_inner();
 
-        TERMINAL_EXISTS.store(false, Ordering::Release);
+        if !B::supports_multiple() {
+            TERMINAL_EXISTS.store(false, Ordering::Release);
+        }
     }
 }
 
 #[cfg(test)]
 #[test]
 fn test_diff_grid() {
-    use crate::Operation;
+    use crate::backend::Operation;
     use crate::{Attributes, Intensity};
 
     let mut old_grid = Grid::new(Vec2::new(16, 8));

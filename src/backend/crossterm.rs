@@ -16,32 +16,22 @@ use crate::{CursorShape, Vec2};
 
 use super::{Backend, ReadEvents, TerminalEvent, Tty};
 
-/// Crossterm backend configuration.
+/// Crossterm backend.
 ///
 /// Currently there is no configuration here.
-#[cfg_attr(feature = "nightly", doc(cfg(feature = "crossterm")))]
-#[derive(Debug, Default, Clone)]
-#[non_exhaustive]
-pub struct Config {}
-
-/// Crossterm backend.
 ///
 /// Crossterm supports all features except setting the cursor shape (see
 /// <https://github.com/crossterm-rs/crossterm/issues/427>).
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "crossterm")))]
-#[derive(Debug)]
-pub struct Crossterm {
-    io: Tty,
-    stream: EventStream,
-}
+#[derive(Debug, Default, Clone)]
+#[non_exhaustive]
+pub struct Crossterm {}
 
 impl Backend for Crossterm {
-    type Config = Config;
     type Error = crossterm::ErrorKind;
+    type Bound = Bound;
 
-    // General functions
-
-    fn new(_config: Self::Config, mut io: Tty) -> Result<Self, Self::Error> {
+    fn bind(self, mut io: Tty) -> Result<Self::Bound, Self::Error> {
         terminal::enable_raw_mode()?;
         execute!(
             io,
@@ -50,11 +40,24 @@ impl Backend for Crossterm {
             event::EnableMouseCapture,
         )?;
 
-        Ok(Self {
+        Ok(Bound {
             io,
             stream: EventStream::new(),
         })
     }
+}
+
+#[derive(Debug)]
+pub struct Bound {
+    io: Tty,
+    stream: EventStream,
+}
+
+impl super::Bound for Bound {
+    type Error = crossterm::ErrorKind;
+
+    // General functions
+
     fn size(&mut self) -> Result<Vec2<u16>, Self::Error> {
         terminal::size().map(Vec2::from)
     }
@@ -176,8 +179,8 @@ impl Backend for Crossterm {
 }
 
 #[allow(clippy::type_complexity)]
-impl<'a> ReadEvents<'a> for Crossterm {
-    type EventError = <Self as Backend>::Error;
+impl<'a> ReadEvents<'a> for Bound {
+    type EventError = <Self as super::Bound>::Error;
     type EventFuture = future::Map<
         stream::Next<'a, EventStream>,
         fn(Option<crossterm::Result<Event>>) -> crossterm::Result<TerminalEvent>,

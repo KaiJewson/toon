@@ -24,6 +24,7 @@ crossterm_crate = { package = "crossterm", version = "0.18.0", features = ["even
 smol = "1.2.4"
 
 [features]
+# TODO: Remove for release
 default = ["crossterm"]
 crossterm = ["crossterm_crate"]
 # Used for #[doc(cfg)]

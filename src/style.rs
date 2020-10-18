@@ -224,6 +224,32 @@ impl AnsiColor {
     }
 }
 
+#[cfg(test)]
+#[test]
+fn test_ansi() {
+    let color = AnsiColor::new_rgb(2, 3, 4);
+    assert_eq!(color.get(), 110);
+    assert_eq!(color.rgb(), Some((2, 3, 4)));
+    assert_eq!(color.grayscale(), None);
+
+    let color = AnsiColor::new_grayscale(13);
+    assert_eq!(color.get(), 244);
+    assert_eq!(color.rgb(), None);
+    assert_eq!(color.grayscale(), Some(13));
+
+    let color = AnsiColor::new_grayscale(0);
+    assert_eq!(color, AnsiColor::new_rgb(0, 0, 0));
+    assert_eq!(color.get(), 16);
+    assert_eq!(color.rgb(), Some((0, 0, 0)));
+    assert_eq!(color.grayscale(), Some(0));
+
+    let color = AnsiColor::new_grayscale(25);
+    assert_eq!(color, AnsiColor::new_rgb(5, 5, 5));
+    assert_eq!(color.get(), 231);
+    assert_eq!(color.rgb(), Some((5, 5, 5)));
+    assert_eq!(color.grayscale(), Some(25));
+}
+
 impl From<AnsiColor> for u8 {
     fn from(ansi: AnsiColor) -> Self {
         ansi.get()

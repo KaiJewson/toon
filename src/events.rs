@@ -1,5 +1,7 @@
 //! Events created by elements in response to inputs.
 
+use std::fmt::{self, Debug, Formatter};
+
 /// A collector of events.
 ///
 /// This trait is sealed - it cannot be implemented outside this crate - in order to prevent
@@ -35,6 +37,11 @@ impl<E> sealed::Sealed for Vector<E> {}
 pub struct Map<'a, E, F> {
     inner: &'a mut dyn Events<E>,
     f: F,
+}
+impl<'a, E, F> Debug for Map<'a, E, F> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Map").finish()
+    }
 }
 impl<'a, E, E2, F: Fn(E2) -> E> Events<E2> for Map<'a, E, F> {
     fn add(&mut self, event: E2) {

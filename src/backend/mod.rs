@@ -15,26 +15,40 @@ mod crossterm;
 mod dummy;
 
 #[cfg(feature = "crossterm")]
-pub use self::crossterm::{Config as CrosstermConfig, Crossterm};
+pub use self::crossterm::Crossterm;
 pub use self::dummy::*;
 
 /// A backend that can be used with Toon.
+pub trait Backend {
+    /// Errors produced by this backend.
+    type Error;
+    /// The backend when bound to a TTY.
+    type Bound: Bound<Error = Self::Error>;
+
+    /// Attempt to bind the backend to a TTY.
+    ///
+    /// # Errors
+    ///
+    /// Fails if initializing the backend fails.
+    fn bind(self, io: Tty) -> Result<Self::Bound, Self::Error>;
+
+    /// Whether the backend supports multiple backends being created at once. Default is `false`.
+    #[must_use]
+    fn supports_multiple() -> bool {
+        false
+    }
+}
+
+/// A backend bound to a TTY.
 ///
-/// Backends should buffer operations and flush them with `flush`. Since `Tty` uses a `BufWriter`
+/// Operations should be buffered and `flush` should flush them. Since `Tty` uses a `BufWriter`
 /// internally this will often not have to be done manually.
 #[allow(clippy::missing_errors_doc)]
-pub trait Backend: Sized + for<'a> ReadEvents<'a, EventError = <Self as Backend>::Error> {
-    /// Type for configuring the backend.
-    type Config;
-    /// Errors that can occur with the backend.
+pub trait Bound: for<'a> ReadEvents<'a, EventError = <Self as Bound>::Error> + Sized {
+    /// Error executing an operation.
     type Error;
 
     // General functions
-
-    /// Create the backend and initialize the terminal from the config and IO.
-    ///
-    /// The terminal must start completely empty.
-    fn new(config: Self::Config, io: Tty) -> Result<Self, Self::Error>;
 
     /// Get the size of the terminal.
     fn size(&mut self) -> Result<Vec2<u16>, Self::Error>;
@@ -103,7 +117,7 @@ pub trait Backend: Sized + for<'a> ReadEvents<'a, EventError = <Self as Backend>
 
 /// Backends which can read events.
 pub trait ReadEvents<'a> {
-    /// This error type must be the same type as used in `Backend`.
+    /// This error type must be the same type as used in `Bound`.
     type EventError;
 
     /// The future that reads the next input value.

@@ -1,4 +1,9 @@
 //! Filters that can be applied to elements.
+//!
+//! Filters implement the [`Filter`](trait.Filter.html) trait. You can apply a filter to an element
+//! by creating a [`Filtered`](struct.Filtered.html) using the
+//! [`filter`](../trait.ElementExt.html#method.filter) method or more specific shortcut methods
+//! such as [`on`](../trait.ElementExt.html#method.on).
 
 use std::fmt::Display;
 use std::marker::PhantomData;
@@ -125,7 +130,7 @@ pub trait Filter<Event> {
 }
 
 /// An element with a filter applied.
-#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Filtered<T, F> {
     element: T,
     filter: F,

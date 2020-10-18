@@ -1,5 +1,5 @@
 use std::mem;
-use std::ops::{Add, Mul, Neg};
+use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 
 /// A 2-dimensional vector.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -97,67 +97,67 @@ impl<T: Ord> Vec2<T> {
 
 macro_rules! vec2_arith {
     ($name:ident, $name_assign:ident, $method:ident, $method_assign:ident) => {
-        impl<T: std::ops::$name> std::ops::$name for Vec2<T> {
-            type Output = Vec2<<T as std::ops::$name>::Output>;
+        impl<T: $name> $name for Vec2<T> {
+            type Output = Vec2<<T as $name>::Output>;
 
             fn $method(self, rhs: Self) -> Self::Output {
                 Vec2 {
-                    x: <T as std::ops::$name>::$method(self.x, rhs.x),
-                    y: <T as std::ops::$name>::$method(self.y, rhs.y),
+                    x: <T as $name>::$method(self.x, rhs.x),
+                    y: <T as $name>::$method(self.y, rhs.y),
                 }
             }
         }
 
-        impl<'a, T: std::ops::$name<&'a T>> std::ops::$name<&'a Vec2<T>> for Vec2<T> {
-            type Output = Vec2<<T as std::ops::$name<&'a T>>::Output>;
+        impl<'a, T: $name<&'a T>> $name<&'a Vec2<T>> for Vec2<T> {
+            type Output = Vec2<<T as $name<&'a T>>::Output>;
 
             fn $method(self, rhs: &'a Vec2<T>) -> Self::Output {
                 Vec2 {
-                    x: <T as std::ops::$name<&'a T>>::$method(self.x, &rhs.x),
-                    y: <T as std::ops::$name<&'a T>>::$method(self.y, &rhs.y),
+                    x: <T as $name<&'a T>>::$method(self.x, &rhs.x),
+                    y: <T as $name<&'a T>>::$method(self.y, &rhs.y),
                 }
             }
         }
 
-        impl<'a, T> std::ops::$name<Vec2<T>> for &'a Vec2<T>
+        impl<'a, T> $name<Vec2<T>> for &'a Vec2<T>
         where
-            &'a T: std::ops::$name<T>,
+            &'a T: $name<T>,
         {
-            type Output = Vec2<<&'a T as std::ops::$name<T>>::Output>;
+            type Output = Vec2<<&'a T as $name<T>>::Output>;
 
             fn $method(self, rhs: Vec2<T>) -> Self::Output {
                 Vec2 {
-                    x: <&'a T as std::ops::$name<T>>::$method(&self.x, rhs.x),
-                    y: <&'a T as std::ops::$name<T>>::$method(&self.y, rhs.y),
+                    x: <&'a T as $name<T>>::$method(&self.x, rhs.x),
+                    y: <&'a T as $name<T>>::$method(&self.y, rhs.y),
                 }
             }
         }
 
-        impl<'a, 'b, T> std::ops::$name<&'b Vec2<T>> for &'a Vec2<T>
+        impl<'a, 'b, T> $name<&'b Vec2<T>> for &'a Vec2<T>
         where
-            &'a T: std::ops::$name<&'b T>,
+            &'a T: $name<&'b T>,
         {
-            type Output = Vec2<<&'a T as std::ops::$name<&'b T>>::Output>;
+            type Output = Vec2<<&'a T as $name<&'b T>>::Output>;
 
             fn $method(self, rhs: &'b Vec2<T>) -> Self::Output {
                 Vec2 {
-                    x: <&'a T as std::ops::$name<&'b T>>::$method(&self.x, &rhs.x),
-                    y: <&'a T as std::ops::$name<&'b T>>::$method(&self.y, &rhs.y),
+                    x: <&'a T as $name<&'b T>>::$method(&self.x, &rhs.x),
+                    y: <&'a T as $name<&'b T>>::$method(&self.y, &rhs.y),
                 }
             }
         }
 
-        impl<T: std::ops::$name_assign> std::ops::$name_assign for Vec2<T> {
+        impl<T: $name_assign> $name_assign for Vec2<T> {
             fn $method_assign(&mut self, rhs: Self) {
-                <T as std::ops::$name_assign>::$method_assign(&mut self.x, rhs.x);
-                <T as std::ops::$name_assign>::$method_assign(&mut self.y, rhs.y);
+                <T as $name_assign>::$method_assign(&mut self.x, rhs.x);
+                <T as $name_assign>::$method_assign(&mut self.y, rhs.y);
             }
         }
 
-        impl<'a, T: std::ops::$name_assign<&'a T>> std::ops::$name_assign<&'a Vec2<T>> for Vec2<T> {
+        impl<'a, T: $name_assign<&'a T>> $name_assign<&'a Vec2<T>> for Vec2<T> {
             fn $method_assign(&mut self, rhs: &'a Self) {
-                <T as std::ops::$name_assign<&'a T>>::$method_assign(&mut self.x, &rhs.x);
-                <T as std::ops::$name_assign<&'a T>>::$method_assign(&mut self.y, &rhs.y);
+                <T as $name_assign<&'a T>>::$method_assign(&mut self.x, &rhs.x);
+                <T as $name_assign<&'a T>>::$method_assign(&mut self.y, &rhs.y);
             }
         }
     };

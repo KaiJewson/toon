@@ -7,12 +7,13 @@ use futures_util::future;
 use crate::style::{Color, Intensity, Style};
 use crate::{Buffer, Cursor, CursorShape, Grid, Output, Vec2};
 
-use super::{Backend, ReadEvents, TerminalEvent, Tty};
+use super::{Backend, Bound, ReadEvents, TerminalEvent, Tty};
 
 /// A dummy backend for testing.
 ///
 /// This backend doesn't display any output to the screen, but records all operations it receives
 /// and stores a terminal buffer.
+#[derive(Debug)]
 pub struct Dummy {
     /// The operations the dummy backend has received.
     pub operations: Vec<Operation>,
@@ -87,14 +88,22 @@ pub enum Operation {
 }
 
 impl Backend for Dummy {
-    type Config = Self;
+    type Error = Infallible;
+    type Bound = Self;
+
+    fn supports_multiple() -> bool {
+        true
+    }
+
+    fn bind(self, _: Tty) -> Result<Self, <Self::Bound as Bound>::Error> {
+        Ok(self)
+    }
+}
+
+impl Bound for Dummy {
     type Error = Infallible;
 
     // General functions
-
-    fn new(config: Self::Config, _io: Tty) -> Result<Self, Self::Error> {
-        Ok(config)
-    }
 
     fn size(&mut self) -> Result<Vec2<u16>, Self::Error> {
         Ok(self.buffer.grid.size())
