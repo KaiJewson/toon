@@ -1,36 +1,40 @@
 //! A simple, declarative, and modular TUI library.
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
-#![warn(clippy::pedantic, rust_2018_idioms)]
+#![warn(clippy::pedantic, rust_2018_idioms, missing_docs)]
 #![allow(
-    clippy::module_name_repetitions,
     // `as u16` is used when we need to get the width of a string that is guaranteed not to exceed
     // u16.
     clippy::cast_possible_truncation,
     clippy::non_ascii_literal
 )]
 
-use std::fmt::{self, Display, Write as _};
+use std::fmt::{Display, Write as _};
 
 pub use smartstring;
 use unicode_width::UnicodeWidthChar;
 
-pub mod backend;
-pub mod buffer;
-pub mod input;
-pub mod style;
-mod terminal;
-mod vec2;
-
 pub use backend::*;
 pub use buffer::*;
+pub use elements::*;
+pub use events::Events;
 pub use input::*;
 pub use style::*;
 pub use terminal::*;
 pub use vec2::Vec2;
 
+pub mod backend;
+pub mod buffer;
+pub mod elements;
+pub mod events;
+pub mod input;
+pub mod style;
+mod terminal;
+mod vec2;
+mod util;
+
 /// An element on the screen.
 ///
-/// Elements are cheap, immutable, borrowed and short-lived. They are usually `Copy`.
+/// Elements are cheap, immutable, borrowed and short-lived. They usually implement `Copy`.
 pub trait Element<Event> {
     /// Draw the element to the output.
     fn draw(&self, output: &mut dyn Output);
@@ -44,8 +48,8 @@ pub trait Element<Event> {
     /// small scrollbar. If your element is flexible return the smallest size possible.
     fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16>;
 
-    /// React to the input and return an event if necessary.
-    fn handle(&self, input: Input) -> Option<Event>;
+    /// React to the input and output events if necessary.
+    fn handle(&self, input: Input, events: &mut dyn Events<Event>);
 }
 
 impl<'a, E: Element<Event>, Event> Element<Event> for &'a E {
@@ -55,8 +59,20 @@ impl<'a, E: Element<Event>, Event> Element<Event> for &'a E {
     fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16> {
         (*self).ideal_size(maximum)
     }
-    fn handle(&self, input: Input) -> Option<Event> {
-        (*self).handle(input)
+    fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
+        (*self).handle(input, events)
+    }
+}
+
+impl<'a, Event> Element<Event> for Box<dyn Element<Event> + 'a> {
+    fn draw(&self, output: &mut dyn Output) {
+        (**self).draw(output)
+    }
+    fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16> {
+        (**self).ideal_size(maximum)
+    }
+    fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
+        (**self).handle(input, events)
     }
 }
 
@@ -95,35 +111,18 @@ pub trait Output {
     ///
     /// This method will panic if the value's implementation of `Display` returns an error, which
     /// most implementations won't do.
-    fn write(&mut self, pos: Vec2<u16>, value: &dyn Display, style: Style) {
-        struct WriteToOutput<'a, O: ?Sized> {
-            pos: Vec2<u16>,
-            style: Style,
-            output: &'a mut O,
-        }
-        impl<'a, O: Output + ?Sized> fmt::Write for WriteToOutput<'a, O> {
-            fn write_str(&mut self, s: &str) -> fmt::Result {
-                for c in s.chars() {
-                    let width = match c.width() {
-                        Some(width) => width,
-                        None => continue,
-                    } as u16;
-
-                    self.output.write_char(self.pos, c, self.style);
-
-                    self.pos.x += width;
-                }
-
-                Ok(())
-            }
-        }
-
+    fn write(&mut self, mut pos: Vec2<u16>, value: &dyn Display, style: Style) {
         write!(
-            &mut WriteToOutput {
-                pos,
-                style,
-                output: self,
-            },
+            util::WriteCharsFn(|c| {
+                let width = match c.width() {
+                    Some(width) => width,
+                    None => return,
+                } as u16;
+
+                self.write_char(pos, c, style);
+
+                pos.x += width;
+            }),
             "{}",
             value
         )

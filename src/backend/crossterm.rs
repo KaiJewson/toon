@@ -10,7 +10,7 @@ use crossterm_crate as crossterm;
 use futures_util::future::{self, FutureExt};
 use futures_util::stream::{self, StreamExt};
 
-use crate::input::{Input, Key, KeyInput, Modifiers, MouseButton, MouseInput, MouseKind};
+use crate::input::{Input, Key, KeyPress, Modifiers, MouseButton, Mouse, MouseKind};
 use crate::style::{Color, Intensity, Rgb};
 use crate::{CursorShape, Vec2};
 
@@ -22,7 +22,7 @@ use super::{Backend, ReadEvents, TerminalEvent, Tty};
 #[cfg_attr(feature = "nightly", doc(cfg(feature = "crossterm")))]
 #[derive(Debug, Default, Clone)]
 #[non_exhaustive]
-pub struct CrosstermConfig {}
+pub struct Config {}
 
 /// Crossterm backend.
 ///
@@ -36,7 +36,7 @@ pub struct Crossterm {
 }
 
 impl Backend for Crossterm {
-    type Config = CrosstermConfig;
+    type Config = Config;
     type Error = crossterm::ErrorKind;
 
     // General functions
@@ -162,7 +162,7 @@ impl Backend for Crossterm {
         self.io.flush()?;
         Ok(())
     }
-    fn reset(&mut self) -> Result<(), Self::Error> {
+    fn reset(mut self) -> Result<(), Self::Error> {
         execute!(
             self.io,
             terminal::LeaveAlternateScreen,
@@ -216,7 +216,7 @@ fn to_crossterm_color(color: Color) -> CColor {
 
 fn from_crossterm_event(event: Event) -> TerminalEvent {
     match event {
-        Event::Key(key) => TerminalEvent::Input(Input::Key(KeyInput {
+        Event::Key(key) => TerminalEvent::Input(Input::Key(KeyPress {
             key: match key.code {
                 KeyCode::Backspace => Key::Backspace,
                 KeyCode::Enter => Key::Char('\n'),
@@ -257,9 +257,11 @@ fn from_crossterm_event(event: Event) -> TerminalEvent {
                 MouseEvent::ScrollDown(x, y, m) => (MouseKind::ScrollDown, x, y, m),
                 MouseEvent::ScrollUp(x, y, m) => (MouseKind::ScrollUp, x, y, m),
             };
-            MouseInput {
+            Mouse {
                 kind,
                 at: Vec2 { x, y },
+                // Anything can go here
+                size: Vec2::default(),
                 modifiers: from_crossterm_modifiers(modifiers),
             }
         })),

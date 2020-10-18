@@ -15,7 +15,7 @@ mod crossterm;
 mod dummy;
 
 #[cfg(feature = "crossterm")]
-pub use self::crossterm::*;
+pub use self::crossterm::{Crossterm, Config as CrosstermConfig};
 pub use self::dummy::*;
 
 /// A backend that can be used with Toon.
@@ -97,8 +97,8 @@ pub trait Backend: Sized + for<'a> ReadEvents<'a, EventError = <Self as Backend>
 
     /// Reset the terminal to its initial state.
     ///
-    /// This will always be run as the last method.
-    fn reset(&mut self) -> Result<(), Self::Error>;
+    /// This will always be called.
+    fn reset(self) -> Result<(), Self::Error>;
 }
 
 /// Backends which can read events.
@@ -119,6 +119,8 @@ pub trait ReadEvents<'a> {
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum TerminalEvent {
     /// A user input occurred.
+    ///
+    /// If it is a mouse input, the `size` field is ignored, so you can fill it with anything.
     Input(Input),
     /// The terminal was resized. Contains the new size.
     Resize(Vec2<u16>),

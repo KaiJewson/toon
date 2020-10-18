@@ -6,24 +6,24 @@ use crate::Vec2;
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Input {
     /// A key was pressed.
-    Key(KeyInput),
+    Key(KeyPress),
     /// A mouse button was pressed, released or dragged, or the mouse wheel was scrolled.
-    Mouse(MouseInput),
+    Mouse(Mouse),
 }
 
-impl From<KeyInput> for Input {
-    fn from(input: KeyInput) -> Self {
+impl From<KeyPress> for Input {
+    fn from(input: KeyPress) -> Self {
         Self::Key(input)
     }
 }
-impl From<MouseInput> for Input {
-    fn from(input: MouseInput) -> Self {
+impl From<Mouse> for Input {
+    fn from(input: Mouse) -> Self {
         Self::Mouse(input)
     }
 }
 impl From<char> for Input {
     fn from(key: char) -> Self {
-        Self::Key(KeyInput::from(key))
+        Self::Key(KeyPress::from(key))
     }
 }
 impl PartialEq<char> for Input {
@@ -39,14 +39,14 @@ impl PartialEq<Input> for char {
 
 /// A key was pressed.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct KeyInput {
+pub struct KeyPress {
     /// Which key was pressed.
     pub key: Key,
     /// The modifiers active while the key was pressed.
     pub modifiers: Modifiers,
 }
 
-impl From<char> for KeyInput {
+impl From<char> for KeyPress {
     fn from(key: char) -> Self {
         Self {
             key: Key::Char(key.to_ascii_lowercase()),
@@ -58,13 +58,13 @@ impl From<char> for KeyInput {
     }
 }
 
-impl PartialEq<char> for KeyInput {
+impl PartialEq<char> for KeyPress {
     fn eq(&self, &other: &char) -> bool {
         *self == Self::from(other)
     }
 }
-impl PartialEq<KeyInput> for char {
-    fn eq(&self, other: &KeyInput) -> bool {
+impl PartialEq<KeyPress> for char {
+    fn eq(&self, other: &KeyPress) -> bool {
         other == self
     }
 }
@@ -104,16 +104,18 @@ pub enum Key {
 
 /// A mouse button was pressed, released or dragged, or the mouse wheel was scrolled.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct MouseInput {
+pub struct Mouse {
     /// What kind of mouse input it is.
     pub kind: MouseKind,
     /// Where the input occurred, zero-indexed.
     pub at: Vec2<u16>,
+    /// The size of the output that captured the mouse input.
+    pub size: Vec2<u16>,
     /// The modifiers active while the input occurred. Only some terminals report this.
     pub modifiers: Modifiers,
 }
 
-/// What kind of mouse input.
+/// A kind of mouse input.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum MouseKind {
     /// A mouse button was pressed.

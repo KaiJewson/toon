@@ -2,7 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::backend::{Backend, TerminalEvent, Tty};
 use crate::buffer::{Buffer, Cell, Grid};
-use crate::{Color, Element, Intensity, Output, Style, Vec2};
+use crate::{Color, Element, Input, Intensity, Output, Style, Vec2};
 
 static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 
@@ -11,9 +11,8 @@ static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 /// Only one terminal may exist at once; attempting to create more than one at once will panic.
 #[derive(Debug)]
 pub struct Terminal<B: Backend> {
-    backend: B,
-    /// Whether the backend has been `.reset()`.
-    backend_reset: bool,
+    /// Only `None` during destruction of the type.
+    backend: Option<B>,
     /// Holds the previous frame to diff against.
     old_buffer: Buffer,
     /// Is always a clear buffer, kept around to avoid cloning the buffer each draw.
@@ -57,8 +56,7 @@ impl<B: Backend> Terminal<B> {
         let buffer = Buffer::from(Grid::new(backend.size()?));
 
         Ok(Terminal {
-            backend,
-            backend_reset: false,
+            backend: Some(backend),
             old_buffer: buffer.clone(),
             buffer,
             cursor_pos: Vec2::default(),
@@ -66,7 +64,8 @@ impl<B: Backend> Terminal<B> {
         })
     }
 
-    /// Draw an element to the terminal and wait for an event.
+    /// Draw an element to the terminal and wait for an event. If multiple events occur they will
+    /// all be returned, but this function will never return an empty vector.
     ///
     /// The future produced by this function can be dropped, in which case the terminal will stop
     /// reading events.
@@ -74,20 +73,29 @@ impl<B: Backend> Terminal<B> {
     /// # Errors
     ///
     /// Fails when drawing to the backend fails.
-    pub async fn draw<Event, E: Element<Event>>(&mut self, element: E) -> Result<Event, B::Error> {
+    pub async fn draw<Event, E: Element<Event>>(
+        &mut self,
+        element: E,
+    ) -> Result<Vec<Event>, B::Error> {
         loop {
             element.draw(&mut self.buffer);
 
             self.diff()?;
-            self.backend.flush()?;
+            self.backend_mut().flush()?;
 
             self.old_buffer.clear(Color::Default);
             std::mem::swap(&mut self.old_buffer, &mut self.buffer);
 
-            match self.backend.read_event().await? {
-                TerminalEvent::Input(input) => {
-                    if let Some(event) = element.handle(input) {
-                        return Ok(event);
+            match self.backend_mut().read_event().await? {
+                TerminalEvent::Input(mut input) => {
+                    if let Input::Mouse(mouse) = &mut input {
+                        mouse.size = self.buffer.size();
+                    }
+
+                    let mut events = crate::events::Vector(Vec::new());
+                    element.handle(input, &mut events);
+                    if !events.0.is_empty() {
+                        return Ok(events.0);
                     }
                 }
                 TerminalEvent::Resize(size) => {
@@ -100,8 +108,10 @@ impl<B: Backend> Terminal<B> {
 
     /// Diffs `old_buffer` and `new_buffer` and draws them to the backend.
     fn diff(&mut self) -> Result<(), B::Error> {
+        let backend = self.backend.as_mut().unwrap();
+
         if self.old_buffer.title != self.buffer.title {
-            self.backend.set_title(&self.buffer.title)?;
+            backend.set_title(&self.buffer.title)?;
         }
 
         for (y, (old_line, new_line)) in self
@@ -134,7 +144,7 @@ impl<B: Backend> Terminal<B> {
                     ($($(.$path:ident)+ => $set_style:ident,)*) => {
                         $(
                             if self.style$(.$path)+ != new_style$(.$path)+ {
-                                self.backend.$set_style(new_style$(.$path)+)?;
+                                backend.$set_style(new_style$(.$path)+)?;
                             }
                         )*
                     }
@@ -150,10 +160,10 @@ impl<B: Backend> Terminal<B> {
                 }
 
                 if self.cursor_pos != pos {
-                    self.backend.set_cursor_pos(pos)?;
+                    backend.set_cursor_pos(pos)?;
                 }
 
-                self.backend.write(&new_contents)?;
+                backend.write(&new_contents)?;
 
                 self.style = *new_style;
 
@@ -165,16 +175,16 @@ impl<B: Backend> Terminal<B> {
                     y: pos.y + x / grid_width,
                 };
             }
-
-            // Some terminals use the background color of the cursor to fill in space created by a
-            // resize, so reset it.
-            self.backend.set_background(Color::Default)?;
-            self.style.background = Color::Default;
         }
+
+        // Some terminals use the background color of the cursor to fill in space created by a
+        // resize, so reset it.
+        backend.set_background(Color::Default)?;
+        self.style.background = Color::Default;
 
         if let Some(new_cursor) = self.buffer.cursor {
             if self.old_buffer.cursor.is_none() {
-                self.backend.show_cursor()?;
+                backend.show_cursor()?;
             }
 
             if self
@@ -182,20 +192,20 @@ impl<B: Backend> Terminal<B> {
                 .cursor
                 .map_or(true, |c| c.shape != new_cursor.shape)
             {
-                self.backend.set_cursor_shape(new_cursor.shape)?;
+                backend.set_cursor_shape(new_cursor.shape)?;
             }
             if self
                 .old_buffer
                 .cursor
                 .map_or(true, |c| c.blinking != new_cursor.blinking)
             {
-                self.backend.set_cursor_blinking(new_cursor.blinking)?;
+                backend.set_cursor_blinking(new_cursor.blinking)?;
             }
             if self.cursor_pos != new_cursor.pos {
-                self.backend.set_cursor_pos(new_cursor.pos)?;
+                backend.set_cursor_pos(new_cursor.pos)?;
             }
         } else if self.old_buffer.cursor.is_some() {
-            self.backend.hide_cursor()?;
+            backend.hide_cursor()?;
         }
 
         Ok(())
@@ -204,13 +214,13 @@ impl<B: Backend> Terminal<B> {
     /// Get a reference to the terminal's backend.
     #[must_use]
     pub fn backend(&self) -> &B {
-        &self.backend
+        self.backend.as_ref().unwrap()
     }
 
     /// Get a mutable reference to the terminal's backend.
     #[must_use]
     pub fn backend_mut(&mut self) -> &mut B {
-        &mut self.backend
+        self.backend.as_mut().unwrap()
     }
 
     /// Clean up the terminal.
@@ -222,18 +232,21 @@ impl<B: Backend> Terminal<B> {
     ///
     /// Fails if cleaning up the backend fails.
     pub fn cleanup(mut self) -> Result<(), B::Error> {
-        self.backend.reset()?;
-        self.backend_reset = true;
+        self.cleanup_inner()?;
+        Ok(())
+    }
 
+    fn cleanup_inner(&mut self) -> Result<(), B::Error> {
+        if let Some(backend) = self.backend.take() {
+            backend.reset()?;
+        }
         Ok(())
     }
 }
 
 impl<B: Backend> Drop for Terminal<B> {
     fn drop(&mut self) {
-        if !self.backend_reset {
-            let _ = self.backend.reset();
-        }
+        let _ = self.cleanup_inner();
 
         TERMINAL_EXISTS.store(false, Ordering::Release);
     }

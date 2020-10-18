@@ -204,7 +204,7 @@ impl Backend for Dummy {
         self.operations.push(Operation::Flush);
         Ok(())
     }
-    fn reset(&mut self) -> Result<(), Self::Error> {
+    fn reset(self) -> Result<(), Self::Error> {
         Ok(())
     }
 }

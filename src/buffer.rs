@@ -5,7 +5,7 @@ use std::fmt::Display;
 use std::iter;
 use unicode_width::UnicodeWidthChar;
 
-use crate::{Cursor, Element, Input, Output, Style, Vec2};
+use crate::{Cursor, Element, Output, Style, Vec2, Input, Events};
 
 /// A terminal state.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -51,9 +51,7 @@ impl<E> Element<E> for Buffer {
     fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
         self.grid.size()
     }
-    fn handle(&self, _input: Input) -> Option<E> {
-        None
-    }
+    fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
 
 /// The grid of characters on a terminal.
@@ -157,9 +155,7 @@ impl<E> Element<E> for Grid {
     fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
         self.size()
     }
-    fn handle(&self, _input: Input) -> Option<E> {
-        None
-    }
+    fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
 
 /// A line of cells in a terminal.
@@ -346,9 +342,7 @@ impl<E> Element<E> for Line {
     fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
         self.size()
     }
-    fn handle(&self, _input: Input) -> Option<E> {
-        None
-    }
+    fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
 
 /// A cell in a terminal.
