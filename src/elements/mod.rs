@@ -3,13 +3,14 @@
 //! This module aims to cover most use cases of elements so you don't have to implement
 //! [`Element`](../trait.Element.html) yourself.
 
-use crate::{Element, Input};
+use crate::{Element, input};
 
 pub mod filter;
-mod text;
+pub mod containers;
+mod line;
 
 pub use filter::*;
-pub use text::*;
+pub use line::*;
 
 /// An extension trait for elements providing useful methods.
 pub trait ElementExt<Event>: Element<Event> + Sized {
@@ -22,12 +23,19 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
 
     /// Trigger an event when an input occurs.
     ///
-    /// This is a shortcut method for `.filter(toon::On::new(...))`.
-    fn on(self, input: impl Into<Input>, event: Event) -> Filtered<Self, On<Event>>
+    /// # Examples
+    ///
+    /// ```
+    /// # let element = toon::line("");
+    /// # enum Event { Exit }
+    /// // When the 'q' key is pressed or the element is clicked an Exit event will be triggered.
+    /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
+    /// ```
+    fn on<I: input::Pattern>(self, input_pattern: I, event: Event) -> Filtered<Self, On<I, Event>>
     where
         Event: Clone,
     {
-        self.filter(On::new(input, event))
+        self.filter(On::new(input_pattern, event))
     }
 
     /// Erase the element's type by boxing it.

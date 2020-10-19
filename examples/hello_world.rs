@@ -7,7 +7,7 @@ fn main() {
         let mut terminal = Terminal::new(Crossterm::default())?;
 
         terminal
-            .draw(toon::text("Hello World!", Style::default()).on('q', ()))
+            .draw(toon::line("Hello World!", Style::default()).on('q', ()))
             .await?;
 
         terminal.cleanup()

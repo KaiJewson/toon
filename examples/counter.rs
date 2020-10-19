@@ -1,6 +1,6 @@
 //! A counter that can be incremented by pressing space.
 
-use toon::{Attributes, Color, Crossterm, ElementExt, Style, Terminal};
+use toon::{Color, Crossterm, ElementExt, Style, Terminal};
 
 #[derive(Clone, Copy)]
 enum Event {
@@ -17,9 +17,9 @@ fn main() {
         'outer: loop {
             let events = terminal
                 .draw(
-                    toon::text(
+                    toon::line(
                         format_args!("The number is {}!", counter),
-                        Style::new(Color::Red, Color::Black, Attributes::new().bold()),
+                        Style::default().foreground(Color::Red).bold(),
                     )
                     .on(' ', Event::Increment)
                     .on('q', Event::Quit),

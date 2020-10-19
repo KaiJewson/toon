@@ -21,17 +21,35 @@ impl From<Mouse> for Input {
         Self::Mouse(input)
     }
 }
-impl From<char> for Input {
-    fn from(key: char) -> Self {
-        Self::Key(KeyPress::from(key))
+
+impl PartialEq<KeyPress> for Input {
+    fn eq(&self, other: &KeyPress) -> bool {
+        matches!(self, Self::Key(press) if press == other)
     }
 }
+impl PartialEq<Input> for KeyPress {
+    fn eq(&self, other: &Input) -> bool {
+        other == self
+    }
+}
+
 impl PartialEq<char> for Input {
     fn eq(&self, &other: &char) -> bool {
-        *self == Self::from(other)
+        *self == KeyPress::from(other)
     }
 }
 impl PartialEq<Input> for char {
+    fn eq(&self, other: &Input) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<Mouse> for Input {
+    fn eq(&self, other: &Mouse) -> bool {
+        matches!(self, Self::Mouse(mouse) if mouse == other)
+    }
+}
+impl PartialEq<Input> for Mouse {
     fn eq(&self, other: &Input) -> bool {
         other == self
     }
@@ -150,4 +168,102 @@ pub struct Modifiers {
     pub control: bool,
     /// The alt key.
     pub alt: bool,
+}
+
+impl Modifiers {
+    /// Returns `true` if no modifiers held down.
+    #[must_use]
+    pub const fn are_none(self) -> bool {
+        !self.shift && !self.control && !self.alt
+    }
+}
+
+/// A pattern that matches inputs.
+///
+/// This is implemented for:
+/// - Functions that take an input and return a boolean.
+/// - [`Input`](enum.Input.html), [`KeyPress`](struct.KeyPress.html), [`Mouse`](struct.Mouse.html)
+/// and `char` which just perform an equality check.
+/// - [`Key`](enum.Key.html), which does not allow any modifiers to be held down.
+/// - [`MouseKind`](enum.MouseKind.html), which can occur at any position without modifiers.
+/// - [`MouseButton`](enum.MouseButton.html), which detects when a mouse button was pressed at any
+/// position without modifiers.
+/// - Tuples, which detect any one of the inputs occurring.
+pub trait Pattern {
+    /// Whether the pattern matches this input.
+    fn matches(&self, input: Input) -> bool;
+}
+
+impl<F: Fn(Input) -> bool> Pattern for F {
+    fn matches(&self, input: Input) -> bool {
+        (self)(input)
+    }
+}
+
+impl Pattern for Input {
+    fn matches(&self, input: Input) -> bool {
+        *self == input
+    }
+}
+impl Pattern for KeyPress {
+    fn matches(&self, input: Input) -> bool {
+        *self == input
+    }
+}
+impl Pattern for Mouse {
+    fn matches(&self, input: Input) -> bool {
+        *self == input
+    }
+}
+impl Pattern for char {
+    fn matches(&self, input: Input) -> bool {
+        *self == input
+    }
+}
+
+impl Pattern for Key {
+    fn matches(&self, input: Input) -> bool {
+        matches!(input, Input::Key(press) if press.key == *self && press.modifiers.are_none())
+    }
+}
+
+impl Pattern for MouseKind {
+    fn matches(&self, input: Input) -> bool {
+        matches!(input, Input::Mouse(mouse) if mouse.kind == *self && mouse.modifiers.are_none())
+    }
+}
+
+impl Pattern for MouseButton {
+    fn matches(&self, input: Input) -> bool {
+        MouseKind::Press(*self).matches(input)
+    }
+}
+
+macro_rules! impl_input_pattern_for_tuples {
+    ($(($($param:ident),*),)*) => {
+        $(
+            impl<$($param: Pattern,)*> Pattern for ($($param,)*) {
+                fn matches(&self, input: Input) -> bool {
+                    #[allow(non_snake_case)]
+                    let ($($param,)*) = self;
+                    false
+                    $(|| $param.matches(input))*
+                }
+            }
+        )*
+    }
+}
+impl_input_pattern_for_tuples! {
+    (A),
+    (A, B),
+    (A, B, C),
+    (A, B, C, D),
+    (A, B, C, D, E),
+    (A, B, C, D, E, F),
+    (A, B, C, D, E, F, G),
+    (A, B, C, D, E, F, G, H),
+    (A, B, C, D, E, F, G, H, I),
+    (A, B, C, D, E, F, G, H, I, J),
+    (A, B, C, D, E, F, G, H, I, J, K),
+    (A, B, C, D, E, F, G, H, I, J, K, L),
 }

@@ -11,7 +11,7 @@
 //! let mut terminal = Terminal::new(Crossterm::default())?;
 //!
 //! terminal
-//!     .draw(toon::text("Hello World!", toon::Style::default()).on('q', ()))
+//!     .draw(toon::line("Hello World!", toon::Style::default()).on('q', ()))
 //!     .await?;
 //!
 //! terminal.cleanup()
@@ -42,10 +42,10 @@ use unicode_width::UnicodeWidthChar;
 pub use backend::Crossterm;
 #[doc(no_inline)]
 pub use backend::{Backend, Dummy};
-pub use buffer::*;
+pub use buffer::Buffer;
 pub use elements::*;
 pub use events::Events;
-pub use input::*;
+pub use input::{Input, KeyPress, Key, Mouse, MouseKind, MouseButton, Modifiers};
 pub use style::*;
 pub use terminal::*;
 pub use vec2::Vec2;

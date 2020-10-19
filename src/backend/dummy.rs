@@ -5,7 +5,8 @@ use unicode_width::UnicodeWidthStr;
 use futures_util::future;
 
 use crate::style::{Color, Intensity, Style};
-use crate::{Buffer, Cursor, CursorShape, Grid, Output, Vec2};
+use crate::buffer::{Buffer, Grid};
+use crate::{Cursor, CursorShape, Output, Vec2};
 
 use super::{Backend, Bound, ReadEvents, TerminalEvent, Tty};
 

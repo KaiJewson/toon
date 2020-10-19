@@ -11,6 +11,21 @@ pub struct Style {
     pub attributes: Attributes,
 }
 
+macro_rules! forward_to_attributes_methods {
+    ($(#[doc = $doc:literal] $name:ident,)*) => {
+        $(
+            #[doc = $doc]
+            #[must_use]
+            pub const fn $name(self) -> Self {
+                Self {
+                    attributes: self.attributes.$name(),
+                    ..self
+                }
+            }
+        )*
+    }
+}
+
 impl Style {
     /// Create a style.
     #[must_use]
@@ -20,6 +35,32 @@ impl Style {
             background,
             attributes,
         }
+    }
+
+    /// Set the foreground color of the text.
+    #[must_use]
+    pub const fn foreground(self, foreground: Color) -> Self {
+        Self { foreground, ..self }
+    }
+    /// Set the background color of the text.
+    #[must_use]
+    pub const fn background(self, background: Color) -> Self {
+        Self { background, ..self }
+    }
+
+    forward_to_attributes_methods! {
+        /// Make the intensity bold.
+        bold,
+        /// Make the intensity dim.
+        dim,
+        /// Make the text italic.
+        italic,
+        /// Underline the text.
+        underlined,
+        /// Make the text blink.
+        blinking,
+        /// Cross out the text.
+        crossed_out,
     }
 }
 
