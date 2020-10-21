@@ -48,8 +48,11 @@ impl<E> Element<E> for Buffer {
         output.set_title(&self.title);
         output.set_cursor(self.cursor);
     }
-    fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
-        self.grid.size()
+    fn width(&self, _height: Option<u16>) -> (u16, u16) {
+        (self.grid.width(), self.grid.width())
+    }
+    fn height(&self, _width: Option<u16>) -> (u16, u16) {
+        (self.grid.height(), self.grid.height())
     }
     fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
@@ -152,8 +155,11 @@ impl<E> Element<E> for Grid {
             }
         }
     }
-    fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
-        self.size()
+    fn width(&self, _height: Option<u16>) -> (u16, u16) {
+        (self.width(), self.width())
+    }
+    fn height(&self, _width: Option<u16>) -> (u16, u16) {
+        (self.height(), self.height())
     }
     fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
@@ -339,8 +345,11 @@ impl<E> Element<E> for Line {
             }
         }
     }
-    fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
-        self.size()
+    fn width(&self, _height: Option<u16>) -> (u16, u16) {
+        (self.len(), self.len())
+    }
+    fn height(&self, _width: Option<u16>) -> (u16, u16) {
+        (1, 1)
     }
     fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }

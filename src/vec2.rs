@@ -47,6 +47,16 @@ impl<T> Vec2<T> {
             y: self.y.into(),
         }
     }
+
+    /// Get references to each of the components.
+    pub fn as_ref(&self) -> Vec2<&T> {
+        Vec2::new(&self.x, &self.y)
+    }
+
+    /// Get mutable references to each of the components.
+    pub fn as_mut(&mut self) -> Vec2<&mut T> {
+        Vec2::new(&mut self.x, &mut self.y)
+    }
 }
 
 impl<T: Add> Vec2<T> {

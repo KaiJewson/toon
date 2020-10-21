@@ -1,4 +1,4 @@
-use crate::{Element, Events, Input, input};
+use crate::{input, Element, Events, Input};
 
 use super::Filter;
 

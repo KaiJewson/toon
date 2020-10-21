@@ -6,13 +6,49 @@
 //! such as [`on`](../trait.ElementExt.html#method.on).
 
 use std::fmt::Display;
-use std::marker::PhantomData;
 
-use crate::{Cursor, Element, Events, Input, Output, Style, Vec2};
+use crate::{input, Cursor, Element, Events, Input, Output, Style, Vec2};
 
 pub use on::*;
 
 mod on;
+
+/// An extension trait for elements providing useful methods.
+pub trait ElementExt<Event>: Element<Event> + Sized {
+    /// Filter this element using the given filter.
+    ///
+    /// This is a shortcut method for [`Filtered::new`](struct.Filtered.html#method.new).
+    fn filter<F: Filter<Event>>(self, filter: F) -> Filtered<Self, F> {
+        Filtered::new(self, filter)
+    }
+
+    /// Trigger an event when an input occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # let element = toon::line("");
+    /// # enum Event { Exit }
+    /// // When the 'q' key is pressed or the element is clicked an Exit event will be triggered.
+    /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
+    /// ```
+    fn on<I: input::Pattern>(self, input_pattern: I, event: Event) -> Filtered<Self, On<I, Event>>
+    where
+        Event: Clone,
+    {
+        self.filter(On::new(input_pattern, event))
+    }
+
+    /// Erase the element's type by boxing it.
+    fn boxed<'a>(self) -> Box<dyn Element<Event> + 'a>
+    where
+        Self: 'a,
+    {
+        Box::new(self)
+    }
+}
+
+impl<Event, T: Element<Event>> ElementExt<Event> for T {}
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {
@@ -21,30 +57,13 @@ pub trait Filter<Event> {
     /// By default this method forwards to `filter_size`, `write_char`, `set_title` and
     /// `set_cursor`.
     fn draw(&self, element: &dyn Element<Event>, output: &mut dyn Output) {
-        struct FilterOutput<'a, T: ?Sized, Event> {
-            filter: &'a T,
-            output: &'a mut dyn Output,
-            event: PhantomData<Event>,
-        }
-        impl<'a, Event, T: Filter<Event> + ?Sized> Output for FilterOutput<'a, T, Event> {
-            fn size(&self) -> Vec2<u16> {
-                self.filter.filter_size(self.output.size())
-            }
-            fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
-                self.filter.write_char(self.output, pos, c, style);
-            }
-            fn set_title(&mut self, title: &dyn Display) {
-                self.filter.set_title(self.output, title);
-            }
-            fn set_cursor(&mut self, cursor: Option<Cursor>) {
-                self.filter.set_cursor(self.output, cursor);
-            }
-        }
-        element.draw(&mut FilterOutput {
-            filter: self,
+        element.draw(&mut crate::output_with(
             output,
-            event: PhantomData,
-        });
+            |output| self.filter_size(output.size()),
+            |output, pos, c, style| self.write_char(*output, pos, c, style),
+            |output, title| self.set_title(*output, title),
+            |output, cursor| self.set_cursor(*output, cursor),
+        ));
     }
 
     /// Filter the size of the output.
@@ -107,11 +126,18 @@ pub trait Filter<Event> {
         cursor
     }
 
-    /// Get the ideal size of the filtered element.
+    /// Get the inclusive range of widths the element can take up given an optional fixed height.
     ///
-    /// By default this calls the element's `ideal_size` method.
-    fn ideal_size(&self, element: &dyn Element<Event>, maximum: Vec2<u16>) -> Vec2<u16> {
-        element.ideal_size(maximum)
+    /// By default this calls the element's `width` method.
+    fn width(&self, element: &dyn Element<Event>, height: Option<u16>) -> (u16, u16) {
+        element.width(height)
+    }
+
+    /// Get the inclusive range of heights the element can take up given an optional fixed width.
+    ///
+    /// By default this calls the element's `height` method.
+    fn height(&self, element: &dyn Element<Event>, width: Option<u16>) -> (u16, u16) {
+        element.height(width)
     }
 
     /// React to the input and output events if necessary.
@@ -139,7 +165,7 @@ pub struct Filtered<T, F> {
 impl<T, F> Filtered<T, F> {
     /// Filter an element.
     #[must_use]
-    pub fn new(element: T, filter: F) -> Self {
+    pub const fn new(element: T, filter: F) -> Self {
         Self { element, filter }
     }
 }
@@ -148,8 +174,11 @@ impl<T: Element<Event>, F: Filter<Event>, Event> Element<Event> for Filtered<T, 
     fn draw(&self, output: &mut dyn Output) {
         self.filter.draw(&self.element, output)
     }
-    fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16> {
-        self.filter.ideal_size(&self.element, maximum)
+    fn width(&self, height: Option<u16>) -> (u16, u16) {
+        self.filter.width(&self.element, height)
+    }
+    fn height(&self, width: Option<u16>) -> (u16, u16) {
+        self.filter.height(&self.element, width)
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
         self.filter.handle(&self.element, input, events);

@@ -42,8 +42,9 @@ impl<T: Display, E> Element<E> for Line<T> {
     fn draw(&self, output: &mut dyn Output) {
         output.write(Vec2::new(0, 0), &self.item, self.style);
     }
-    fn ideal_size(&self, _maximum: Vec2<u16>) -> Vec2<u16> {
+    fn width(&self, _height: Option<u16>) -> (u16, u16) {
         let mut width = 0;
+
         write!(
             crate::util::WriteCharsFn(|c| width += c.width().unwrap_or(0) as u16),
             "{}",
@@ -51,7 +52,10 @@ impl<T: Display, E> Element<E> for Line<T> {
         )
         .expect("formatting failed");
 
-        Vec2::new(width, 0)
+        (width, width)
+    }
+    fn height(&self, _width: Option<u16>) -> (u16, u16) {
+        (1, 1)
     }
     fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }

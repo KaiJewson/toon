@@ -33,6 +33,8 @@
 )]
 
 use std::fmt::{Display, Write as _};
+use std::rc::Rc;
+use std::sync::Arc;
 
 pub use smartstring;
 use unicode_width::UnicodeWidthChar;
@@ -45,7 +47,7 @@ pub use backend::{Backend, Dummy};
 pub use buffer::Buffer;
 pub use elements::*;
 pub use events::Events;
-pub use input::{Input, KeyPress, Key, Mouse, MouseKind, MouseButton, Modifiers};
+pub use input::{Input, Key, KeyPress, Modifiers, Mouse, MouseButton, MouseKind};
 pub use style::*;
 pub use terminal::*;
 pub use vec2::Vec2;
@@ -70,14 +72,11 @@ pub trait Element<Event> {
     /// Draw the element to the output.
     fn draw(&self, output: &mut dyn Output);
 
-    /// Get the ideal size that the element takes up on the screen given the size restrictions.
-    ///
-    /// Values will be capped at `maximum`; returning a greater value will have no effect.
-    ///
-    /// Don't just blindly return `maximum`, as some containers (e.g. scrolling containers) will
-    /// pass in `Vec2 { x: u16::MAX, y: u16::MAX }` in `maximum`, and you will end up with a very
-    /// small scrollbar. If your element is flexible return the smallest size possible.
-    fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16>;
+    /// Get the inclusive range of widths the element can take up given an optional fixed height.
+    fn width(&self, height: Option<u16>) -> (u16, u16);
+
+    /// Get the inclusive range of heights the element can take up given an optional fixed width.
+    fn height(&self, width: Option<u16>) -> (u16, u16);
 
     /// React to the input and output events if necessary.
     fn handle(&self, input: Input, events: &mut dyn Events<Event>);
@@ -87,25 +86,38 @@ impl<'a, E: Element<Event>, Event> Element<Event> for &'a E {
     fn draw(&self, output: &mut dyn Output) {
         (*self).draw(output)
     }
-    fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16> {
-        (*self).ideal_size(maximum)
+    fn width(&self, height: Option<u16>) -> (u16, u16) {
+        (*self).width(height)
+    }
+    fn height(&self, width: Option<u16>) -> (u16, u16) {
+        (*self).height(width)
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
         (*self).handle(input, events)
     }
 }
 
-impl<'a, Event> Element<Event> for Box<dyn Element<Event> + 'a> {
-    fn draw(&self, output: &mut dyn Output) {
-        (**self).draw(output)
-    }
-    fn ideal_size(&self, maximum: Vec2<u16>) -> Vec2<u16> {
-        (**self).ideal_size(maximum)
-    }
-    fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
-        (**self).handle(input, events)
+macro_rules! implement_element_forwarding {
+    ($($name:ident),*) => {
+        $(
+            impl<'a, Event, E: Element<Event> + ?Sized> Element<Event> for $name<E> {
+                fn draw(&self, output: &mut dyn Output) {
+                    (**self).draw(output)
+                }
+                fn width(&self, height: Option<u16>) -> (u16, u16) {
+                    (**self).width(height)
+                }
+                fn height(&self, width: Option<u16>) -> (u16, u16) {
+                    (**self).height(width)
+                }
+                fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
+                    (**self).handle(input, events)
+                }
+            }
+        )*
     }
 }
+implement_element_forwarding!(Box, Arc, Rc);
 
 /// An output to which elements draw themselves.
 pub trait Output {
@@ -173,9 +185,13 @@ pub trait Output {
     }
 
     /// Set the title of the output.
+    ///
+    /// If this is called multiple times the last one will be used.
     fn set_title(&mut self, title: &dyn Display);
 
     /// Set the cursor of the output, if there is one.
+    ///
+    /// If this is called multiple times the last one will be used.
     fn set_cursor(&mut self, cursor: Option<Cursor>);
 }
 
@@ -191,6 +207,50 @@ impl<'a, O: Output> Output for &'a mut O {
     }
     fn set_cursor(&mut self, cursor: Option<Cursor>) {
         (**self).set_cursor(cursor)
+    }
+}
+
+/// Construct an ad-hoc [`Output`](trait.Output.html) using the specified callbacks.
+pub fn output_with<T>(
+    state: T,
+    size: impl Fn(&T) -> Vec2<u16>,
+    write_char: impl FnMut(&mut T, Vec2<u16>, char, Style),
+    set_title: impl FnMut(&mut T, &dyn Display),
+    set_cursor: impl FnMut(&mut T, Option<Cursor>),
+) -> impl Output {
+    struct OutputWith<T, S, WC, ST, SC> {
+        state: T,
+        size: S,
+        write_char: WC,
+        set_title: ST,
+        set_cursor: SC,
+    }
+    impl<T, S, WC, ST, SC> Output for OutputWith<T, S, WC, ST, SC>
+    where
+        S: Fn(&T) -> Vec2<u16>,
+        WC: FnMut(&mut T, Vec2<u16>, char, Style),
+        ST: FnMut(&mut T, &dyn Display),
+        SC: FnMut(&mut T, Option<Cursor>),
+    {
+        fn size(&self) -> Vec2<u16> {
+            (self.size)(&self.state)
+        }
+        fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
+            (self.write_char)(&mut self.state, pos, c, style)
+        }
+        fn set_title(&mut self, title: &dyn Display) {
+            (self.set_title)(&mut self.state, title)
+        }
+        fn set_cursor(&mut self, cursor: Option<Cursor>) {
+            (self.set_cursor)(&mut self.state, cursor)
+        }
+    }
+    OutputWith {
+        state,
+        size,
+        write_char,
+        set_title,
+        set_cursor,
     }
 }
 
