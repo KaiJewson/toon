@@ -7,48 +7,11 @@
 
 use std::fmt::Display;
 
-use crate::{input, Cursor, Element, Events, Input, Output, Style, Vec2};
+use crate::{Cursor, Element, Events, Input, Output, Style, Vec2};
 
 pub use on::*;
 
 mod on;
-
-/// An extension trait for elements providing useful methods.
-pub trait ElementExt<Event>: Element<Event> + Sized {
-    /// Filter this element using the given filter.
-    ///
-    /// This is a shortcut method for [`Filtered::new`](struct.Filtered.html#method.new).
-    fn filter<F: Filter<Event>>(self, filter: F) -> Filtered<Self, F> {
-        Filtered::new(self, filter)
-    }
-
-    /// Trigger an event when an input occurs.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # let element = toon::line("");
-    /// # enum Event { Exit }
-    /// // When the 'q' key is pressed or the element is clicked an Exit event will be triggered.
-    /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
-    /// ```
-    fn on<I: input::Pattern>(self, input_pattern: I, event: Event) -> Filtered<Self, On<I, Event>>
-    where
-        Event: Clone,
-    {
-        self.filter(On::new(input_pattern, event))
-    }
-
-    /// Erase the element's type by boxing it.
-    fn boxed<'a>(self) -> Box<dyn Element<Event> + 'a>
-    where
-        Self: 'a,
-    {
-        Box::new(self)
-    }
-}
-
-impl<Event, T: Element<Event>> ElementExt<Event> for T {}
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {

@@ -165,7 +165,7 @@ impl super::Bound for Bound {
         self.io.flush()?;
         Ok(())
     }
-    fn reset(mut self) -> Result<(), Self::Error> {
+    fn reset(mut self) -> Result<Tty, Self::Error> {
         execute!(
             self.io,
             terminal::LeaveAlternateScreen,
@@ -174,7 +174,7 @@ impl super::Bound for Bound {
         )?;
         terminal::disable_raw_mode()?;
 
-        Ok(())
+        Ok(self.io)
     }
 }
 

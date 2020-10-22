@@ -11,7 +11,7 @@
 //! let mut terminal = Terminal::new(Crossterm::default())?;
 //!
 //! terminal
-//!     .draw(toon::line("Hello World!", toon::Style::default()).on('q', ()))
+//!     .draw(toon::span("Hello World!").on('q', ()))
 //!     .await?;
 //!
 //! terminal.cleanup()
@@ -44,7 +44,7 @@ use unicode_width::UnicodeWidthChar;
 pub use backend::Crossterm;
 #[doc(no_inline)]
 pub use backend::{Backend, Dummy};
-pub use buffer::Buffer;
+pub use buffer::*;
 pub use elements::*;
 pub use events::Events;
 pub use input::{Input, Key, KeyPress, Modifiers, Mouse, MouseButton, MouseKind};
@@ -82,7 +82,7 @@ pub trait Element<Event> {
     fn handle(&self, input: Input, events: &mut dyn Events<Event>);
 }
 
-impl<'a, E: Element<Event>, Event> Element<Event> for &'a E {
+impl<'a, E: Element<Event> + ?Sized, Event> Element<Event> for &'a E {
     fn draw(&self, output: &mut dyn Output) {
         (*self).draw(output)
     }

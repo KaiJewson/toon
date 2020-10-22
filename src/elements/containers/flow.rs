@@ -4,11 +4,13 @@ use crate::{Element, Events, Input, Output};
 
 use super::Axis;
 
-/// A one-dimensional dynamic element layout.
+/// A one-dimensional dynamic element layout, created by the [`column`](fn.column.html) and
+/// [`row`](fn.row.html) functions.
 ///
 /// The layout algorithm works by calculating the minimum required space for each element, and then
 /// giving out all extra space equally among the other elements if they support it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct Flow<E> {
     /// The elements inside this container.
     pub elements: E,
@@ -18,8 +20,35 @@ pub struct Flow<E> {
     /// receive key inputs.
     pub broadcast_keys: bool,
     /// The index of the focused element of the container. This element will set the title and
-    /// cursor of the container, and receive all inputs if `broadcast_keys` is not set.
+    /// cursor of the container, and will receive all inputs if `broadcast_keys` is not set.
+    ///
+    /// It is not an error if this element does not exist.
     pub focused: Option<usize>,
+}
+
+impl<E> Flow<E> {
+    /// Broadcast key inputs to all elements, instead of just the focused one.
+    #[must_use]
+    pub fn broadcast_keys(self) -> Self {
+        Self {
+            broadcast_keys: true,
+            ..self
+        }
+    }
+
+    /// Set the focused element of the container.
+    ///
+    /// This element will set the title and cursor of the container, and will receive all inputs if
+    /// `broadcast_keys` is not set.
+    ///
+    /// It is not an error if this element does not exist.
+    #[must_use]
+    pub fn focus(self, element: usize) -> Self {
+        Self {
+            focused: Some(element),
+            ..self
+        }
+    }
 }
 
 impl<E> Flow<E> {
@@ -48,7 +77,7 @@ impl<E> Flow<E> {
         );
 
         // Find a maximum growth that fills the container
-        (0..)
+        (1..)
             .find_map(|maximum_growth| {
                 let mut all_elements_are_at_max_size = true;
                 let mut remaining_space = main_axis_extra_space;
@@ -64,7 +93,8 @@ impl<E> Flow<E> {
                         all_elements_are_at_max_size = false;
                     }
 
-                    remaining_space -= min(element_range, maximum_growth);
+                    remaining_space =
+                        remaining_space.saturating_sub(min(element_range, maximum_growth));
 
                     if remaining_space == 0 {
                         return Some((maximum_growth, i));
@@ -91,7 +121,7 @@ impl<E> Flow<E> {
         &'a E: IntoIterator,
         <&'a E as IntoIterator>::Item: Element<Event>,
     {
-        let (maximum_growth, divinding_point) =
+        let (maximum_growth, dividing_point) =
             self.calculate_layout(main_axis_size, cross_axis_size);
 
         self.elements
@@ -106,7 +136,7 @@ impl<E> Flow<E> {
                 let element_main_axis_size = min(
                     max_main_axis_size,
                     min_main_axis_size
-                        + if i > divinding_point {
+                        + if i > dividing_point {
                             maximum_growth - 1
                         } else {
                             maximum_growth
@@ -120,8 +150,7 @@ impl<E> Flow<E> {
 
 impl<E, Event> Element<Event> for Flow<E>
 where
-    for<'a> &'a E: IntoIterator,
-    for<'a> <&'a E as IntoIterator>::Item: Element<Event>,
+    for<'a> &'a E: IntoIterator<Item = &'a dyn Element<Event>>,
 {
     fn draw(&self, output: &mut dyn Output) {
         let (main_axis_size, cross_axis_size) = self.axis.main_cross_of(output.size());
@@ -247,4 +276,32 @@ fn combine_cross_axes(cross_axes: impl Iterator<Item = (u16, u16)>) -> (u16, u16
     cross_axes.fold((0, 0), |(min_acc, max_acc), (min_len, max_len)| {
         (max(min_acc, min_len), max(max_acc, max_len))
     })
+}
+
+/// Create a column of elements with the [`Flow`](struct.Flow.html) layout.
+#[must_use]
+pub fn column<E, Event>(elements: E) -> Flow<E>
+where
+    for<'a> &'a E: IntoIterator<Item = &'a dyn Element<Event>>,
+{
+    Flow {
+        elements,
+        axis: Axis::Y,
+        broadcast_keys: false,
+        focused: None,
+    }
+}
+
+/// Create a row of elements with the [`Flow`](struct.Flow.html) layout.
+#[must_use]
+pub fn row<E, Event>(elements: E) -> Flow<E>
+where
+    for<'a> &'a E: IntoIterator<Item = &'a dyn Element<Event>>,
+{
+    Flow {
+        elements,
+        axis: Axis::X,
+        broadcast_keys: false,
+        focused: None,
+    }
 }

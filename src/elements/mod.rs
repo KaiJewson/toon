@@ -2,20 +2,55 @@
 //!
 //! This module aims to cover most use cases of elements so you don't have to implement
 //! [`Element`](../trait.Element.html) yourself.
-//!
-//! # Filters
-//!
-//! Filters are Toon's way of wrapping elements. To make your own, you simply implement the
-//! [`Filter`](filter/trait.Filter.html) trait, and to use one you create a
-//! [`Filtered`](filter/struct.Filtered.html) via the [`ElementExt`](filter/trait.ElementExt.html)
-//! extension trait.
+
+use crate::{input, Element};
 
 pub use filter::*;
-pub use layout::*;
+pub use containers::*;
 
-pub use line::*;
+pub use block::*;
+pub use span::*;
 
 pub mod filter;
-pub mod layout;
+pub mod containers;
 
-mod line;
+mod block;
+mod span;
+
+/// An extension trait for elements providing useful methods.
+pub trait ElementExt<Event>: Element<Event> + Sized {
+    /// Filter this element using the given filter.
+    ///
+    /// This is a shortcut method for [`Filtered::new`](filter/struct.Filtered.html#method.new).
+    fn filter<F: Filter<Event>>(self, filter: F) -> Filtered<Self, F> {
+        Filtered::new(self, filter)
+    }
+
+    /// Trigger an event when an input occurs.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use toon::ElementExt;
+    /// # let element = toon::empty();
+    /// # #[derive(Clone)]
+    /// # enum Event { Exit }
+    /// // When the 'q' key is pressed or the element is clicked an Exit event will be triggered.
+    /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
+    /// ```
+    fn on<I: input::Pattern>(self, input_pattern: I, event: Event) -> Filtered<Self, On<I, Event>>
+    where
+        Event: Clone,
+    {
+        self.filter(On { input_pattern, event })
+    }
+
+    /// Erase the element's type by boxing it.
+    fn boxed<'a>(self) -> Box<dyn Element<Event> + 'a>
+    where
+        Self: 'a,
+    {
+        Box::new(self)
+    }
+}
+impl<Event, T: Element<Event>> ElementExt<Event> for T {}

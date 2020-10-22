@@ -1,4 +1,9 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::io;
+use std::fmt::{self, Display, Formatter};
+use std::error::Error as StdError;
+
+use os_pipe::PipeReader;
 
 use crate::backend::{Backend, Bound, ReadEvents, TerminalEvent, Tty};
 use crate::buffer::{Buffer, Cell, Grid};
@@ -8,8 +13,7 @@ static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 
 /// A terminal which can draw elements to a backend.
 ///
-/// For backends that modify the terminal state (i.e. everything but
-/// [`Dummy`](backend/struct.Dummy.html)) only one terminal may exist at once; attempting to
+/// For backends that aren't dummies, only one terminal may exist at once; attempting to
 /// create more than one at once will panic.
 #[derive(Debug)]
 pub struct Terminal<B: Backend> {
@@ -26,6 +30,8 @@ pub struct Terminal<B: Backend> {
     cursor_pos: Vec2<u16>,
     /// The current style being written with.
     style: Style,
+    /// The captured stdout and stderr.
+    captured: Option<PipeReader>,
 }
 
 impl<B: Backend> Terminal<B> {
@@ -33,17 +39,24 @@ impl<B: Backend> Terminal<B> {
     ///
     /// # Panics
     ///
-    /// Panics if the backend modifies the terminal state and a terminal already exists.
+    /// Panics if the backend is not a dummy and a terminal already exists.
     ///
     /// # Errors
     ///
     /// Fails if setting up the terminal fails.
-    pub fn new(backend: B) -> Result<Self, B::Error> {
-        if !B::supports_multiple() && TERMINAL_EXISTS.swap(true, Ordering::Acquire) {
+    pub fn new(backend: B) -> Result<Self, Error<B::Error>> {
+        if !B::is_dummy() && TERMINAL_EXISTS.swap(true, Ordering::Acquire) {
             panic!("Terminal already exists!");
         }
 
-        let mut backend = backend.bind(Tty::new())?;
+        let (tty, captured) = if B::is_dummy() {
+            (Tty::dummy(), None)
+        } else {
+            let (tty, captured) = Tty::new().map_err(Error::Io)?;
+            (tty, Some(captured))
+        };
+
+        let mut backend = backend.bind(tty)?;
 
         backend.hide_cursor()?;
         backend.set_cursor_pos(Vec2::default())?;
@@ -57,12 +70,13 @@ impl<B: Backend> Terminal<B> {
 
         let buffer = Buffer::from(Grid::new(backend.size()?));
 
-        Ok(Terminal {
+        Ok(Self {
             backend: Some(backend),
             old_buffer: buffer.clone(),
             buffer,
             cursor_pos: Vec2::default(),
             style: Style::default(),
+            captured,
         })
     }
 
@@ -75,10 +89,10 @@ impl<B: Backend> Terminal<B> {
     /// # Errors
     ///
     /// Fails when drawing to the backend fails.
-    pub async fn draw<Event, E: Element<Event>>(
+    pub async fn draw<Event>(
         &mut self,
-        element: E,
-    ) -> Result<Vec<Event>, B::Error> {
+        element: impl Element<Event>,
+    ) -> Result<Vec<Event>, Error<B::Error>> {
         loop {
             element.draw(&mut self.buffer);
 
@@ -88,28 +102,31 @@ impl<B: Backend> Terminal<B> {
             self.old_buffer.clear(Color::Default);
             std::mem::swap(&mut self.old_buffer, &mut self.buffer);
 
-            match self.backend_mut().read_event().await? {
-                TerminalEvent::Input(mut input) => {
-                    if let Input::Mouse(mouse) = &mut input {
-                        mouse.size = self.buffer.size();
-                    }
+            loop {
+                match self.backend_mut().read_event().await? {
+                    TerminalEvent::Input(mut input) => {
+                        if let Input::Mouse(mouse) = &mut input {
+                            mouse.size = self.buffer.size();
+                        }
 
-                    let mut events = crate::events::Vector(Vec::new());
-                    element.handle(input, &mut events);
-                    if !events.0.is_empty() {
-                        return Ok(events.0);
+                        let mut events = crate::events::Vector(Vec::new());
+                        element.handle(input, &mut events);
+                        if !events.0.is_empty() {
+                            return Ok(events.0);
+                        }
                     }
-                }
-                TerminalEvent::Resize(size) => {
-                    self.buffer.grid.resize(size);
-                    self.old_buffer.grid.resize(size);
+                    TerminalEvent::Resize(size) => {
+                        self.buffer.grid.resize(size);
+                        self.old_buffer.grid.resize(size);
+                        break;
+                    }
                 }
             }
         }
     }
 
     /// Diffs `old_buffer` and `new_buffer` and draws them to the backend.
-    fn diff(&mut self) -> Result<(), B::Error> {
+    fn diff(&mut self) -> Result<(), Error<B::Error>> {
         let backend = self.backend.as_mut().unwrap();
 
         if self.old_buffer.title != self.buffer.title {
@@ -233,15 +250,20 @@ impl<B: Backend> Terminal<B> {
     /// # Errors
     ///
     /// Fails if cleaning up the backend fails.
-    pub fn cleanup(mut self) -> Result<(), B::Error> {
+    pub fn cleanup(mut self) -> Result<(), Error<B::Error>> {
         self.cleanup_inner()?;
         Ok(())
     }
 
-    fn cleanup_inner(&mut self) -> Result<(), B::Error> {
+    fn cleanup_inner(&mut self) -> Result<(), Error<B::Error>> {
         if let Some(backend) = self.backend.take() {
-            backend.reset()?;
+            backend.reset()?.cleanup().map_err(Error::Io)?;
         }
+
+        if let Some(mut captured) = self.captured.take() {
+            io::copy(&mut captured, &mut io::stdout()).map_err(Error::Io)?;
+        }
+
         Ok(())
     }
 }
@@ -250,8 +272,42 @@ impl<B: Backend> Drop for Terminal<B> {
     fn drop(&mut self) {
         let _ = self.cleanup_inner();
 
-        if !B::supports_multiple() {
+        if !B::is_dummy() {
             TERMINAL_EXISTS.store(false, Ordering::Release);
+        }
+    }
+}
+
+/// An error in Toon.
+#[derive(Debug)]
+#[non_exhaustive]
+pub enum Error<B> {
+    /// An error in the backend.
+    Backend(B),
+    /// An I/O error.
+    Io(io::Error),
+}
+
+impl<B> From<B> for Error<B> {
+    fn from(e: B) -> Self {
+        Self::Backend(e)
+    }
+}
+
+impl<B: Display> Display for Error<B> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Backend(e) => e.fmt(f),
+            Self::Io(e) => e.fmt(f),
+        }
+    }
+}
+
+impl<B: StdError + 'static> StdError for Error<B> {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Self::Backend(e) => Some(e),
+            Self::Io(e) => Some(e),
         }
     }
 }

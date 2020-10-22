@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::convert::Infallible;
-use unicode_width::UnicodeWidthStr;
 
+use unicode_width::UnicodeWidthStr;
 use futures_util::future;
 
 use crate::buffer::{Buffer, Grid};
@@ -32,6 +32,11 @@ pub struct Dummy {
     pub cursor_pos: Vec2<u16>,
     /// The current style being written with.
     pub style: Style,
+    /// The TTY this dummy was given.
+    ///
+    /// Writing to this TTY will panic as the terminal won't give the dummy a real TTY since it
+    /// knows it's a dummy.
+    pub tty: Option<Tty>,
 }
 
 impl Dummy {
@@ -46,6 +51,7 @@ impl Dummy {
             buffer: Buffer::from(Grid::new(size)),
             cursor_pos: Vec2::new(0, 0),
             style: Style::default(),
+            tty: None,
         }
     }
 }
@@ -92,12 +98,12 @@ impl Backend for Dummy {
     type Error = Infallible;
     type Bound = Self;
 
-    fn supports_multiple() -> bool {
+    fn is_dummy() -> bool {
         true
     }
 
-    fn bind(self, _: Tty) -> Result<Self, <Self::Bound as Bound>::Error> {
-        Ok(self)
+    fn bind(self, tty: Tty) -> Result<Self, <Self::Bound as Bound>::Error> {
+        Ok(Self { tty: Some(tty), ..self })
     }
 }
 
@@ -214,8 +220,8 @@ impl Bound for Dummy {
         self.operations.push(Operation::Flush);
         Ok(())
     }
-    fn reset(self) -> Result<(), Self::Error> {
-        Ok(())
+    fn reset(self) -> Result<Tty, Self::Error> {
+        Ok(self.tty.unwrap())
     }
 }
 

@@ -11,21 +11,6 @@ pub struct Style {
     pub attributes: Attributes,
 }
 
-macro_rules! forward_to_attributes_methods {
-    ($(#[doc = $doc:literal] $name:ident,)*) => {
-        $(
-            #[doc = $doc]
-            #[must_use]
-            pub const fn $name(self) -> Self {
-                Self {
-                    attributes: self.attributes.$name(),
-                    ..self
-                }
-            }
-        )*
-    }
-}
-
 impl Style {
     /// Create a style.
     #[must_use]
@@ -36,33 +21,105 @@ impl Style {
             attributes,
         }
     }
+}
 
-    /// Set the foreground color of the text.
-    #[must_use]
-    pub const fn foreground(self, foreground: Color) -> Self {
-        Self { foreground, ..self }
-    }
-    /// Set the background color of the text.
-    #[must_use]
-    pub const fn background(self, background: Color) -> Self {
-        Self { background, ..self }
-    }
-
-    forward_to_attributes_methods! {
-        /// Make the intensity bold.
-        bold,
-        /// Make the intensity dim.
-        dim,
-        /// Make the text italic.
-        italic,
-        /// Underline the text.
-        underlined,
-        /// Make the text blink.
-        blinking,
-        /// Cross out the text.
-        crossed_out,
+impl AsRef<Style> for Style {
+    fn as_ref(&self) -> &Style {
+        self
     }
 }
+impl AsMut<Style> for Style {
+    fn as_mut(&mut self) -> &mut Style {
+        self
+    }
+}
+
+macro_rules! color_setters {
+    ($($desc:literal $fg_name:ident/$bg_name:ident = $color:ident,)*) => {
+        $(
+            #[doc = "Set the foreground color to"]
+            #[doc = $desc]
+            #[must_use]
+            fn $fg_name(self) -> Self {
+                self.foreground(Color::$color)
+            }
+            #[doc = "Set the background color to"]
+            #[doc = $desc]
+            #[must_use]
+            fn $bg_name(self) -> Self {
+                self.background(Color::$color)
+            }
+        )*
+    }
+}
+
+macro_rules! attribute_setters {
+    ($(#[doc = $doc:literal] $name:ident($property:ident = $value:expr),)*) => {
+        $(
+            #[doc = $doc]
+            #[must_use]
+            fn $name(mut self) -> Self {
+                self.as_mut().attributes.$property = $value;
+                self
+            }
+        )*
+    }
+}
+
+/// Types that have a style.
+#[allow(clippy::module_name_repetitions)]
+pub trait Styled: AsRef<Style> + AsMut<Style> + Sized {
+    /// Set the foreground color.
+    fn foreground(mut self, foreground: impl Into<Color>) -> Self {
+        self.as_mut().foreground = foreground.into();
+        self
+    }
+    /// Set the background color.
+    fn background(mut self, background: impl Into<Color>) -> Self {
+        self.as_mut().background = background.into();
+        self
+    }
+    /// Set the attributes.
+    fn attributes(mut self, attributes: Attributes) -> Self {
+        self.as_mut().attributes = attributes;
+        self
+    }
+
+    attribute_setters! {
+        /// Make the intensity bold.
+        bold(intensity = Intensity::Bold),
+        /// Make the intensity dim.
+        dim(intensity = Intensity::Dim),
+        /// Make the text italic.
+        italic(italic = true),
+        /// Underline the text.
+        underlined(underlined = true),
+        /// Make the text blink.
+        blinking(blinking = true),
+        /// Cross out the text.
+        crossed_out(crossed_out = true),
+    }
+
+    color_setters! {
+        "black." black/on_black = Black,
+        "dark gray." dark_gray/on_dark_gray = DarkGray,
+        "light gray." light_gray/on_light_gray = LightGray,
+        "white." white/on_white = White,
+        "red." red/on_red = Red,
+        "dark red." dark_red/on_dark_red = DarkRed,
+        "green." green/on_green = Green,
+        "dark green." dark_green/on_dark_green = DarkGreen,
+        "yellow." yellow/on_yellow = Yellow,
+        "dark yellow." dark_yellow/on_dark_yellow = DarkYellow,
+        "blue." blue/on_blue = Blue,
+        "dark blue." dark_blue/on_dark_blue = DarkBlue,
+        "magenta." magenta/on_magenta = Magenta,
+        "dark magenta." dark_magenta/on_dark_magenta = DarkMagenta,
+        "cyan." cyan/on_cyan = Cyan,
+        "dark cyan." dark_cyan/on_dark_cyan = DarkCyan,
+    }
+}
+impl<T: AsRef<Style> + AsMut<Style>> Styled for T {}
 
 /// A color.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
@@ -342,21 +399,6 @@ pub struct Attributes {
     pub crossed_out: bool,
 }
 
-macro_rules! attribute_fn {
-    ($(#[doc = $doc:literal] $name:ident($property:ident = $value:expr),)*) => {
-        $(
-            #[doc = $doc]
-            #[must_use]
-            pub const fn $name(self) -> Self {
-                Self {
-                    $property: $value,
-                    ..self
-                }
-            }
-        )*
-    }
-}
-
 impl Attributes {
     /// Default attributes.
     #[must_use]
@@ -368,21 +410,6 @@ impl Attributes {
             blinking: false,
             crossed_out: false,
         }
-    }
-
-    attribute_fn! {
-        /// Make the intensity bold.
-        bold(intensity = Intensity::Bold),
-        /// Make the intensity dim.
-        dim(intensity = Intensity::Dim),
-        /// Make the text italic.
-        italic(italic = true),
-        /// Underline the text.
-        underlined(underlined = true),
-        /// Make the text blink.
-        blinking(blinking = true),
-        /// Cross out the text.
-        crossed_out(crossed_out = true),
     }
 }
 

@@ -1,13 +1,13 @@
 //! A simple hello world example in Toon.
 
-use toon::{Crossterm, ElementExt, Style, Terminal};
+use toon::{Crossterm, ElementExt, Terminal};
 
 fn main() {
     let res = smol::block_on(async {
         let mut terminal = Terminal::new(Crossterm::default())?;
 
         terminal
-            .draw(toon::line("Hello World!", Style::default()).on('q', ()))
+            .draw(toon::span("Hello World!").on('q', ()))
             .await?;
 
         terminal.cleanup()

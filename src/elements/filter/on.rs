@@ -6,20 +6,10 @@ use super::Filter;
 /// [`on`](../trait.ElementExt.html#method.on) function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct On<I, Event> {
-    input_pattern: I,
-    event: Event,
-}
-
-impl<I, Event> On<I, Event> {
-    /// Create a new `On` filter. Note that use of the [`on`](../trait.ElementExt.html#method.on)
-    /// function is preferred.
-    #[must_use]
-    pub fn new(input_pattern: I, event: Event) -> Self {
-        Self {
-            input_pattern,
-            event,
-        }
-    }
+    /// The input this filter listens for.
+    pub input_pattern: I,
+    /// The event fired when the input occurs.
+    pub event: Event,
 }
 
 impl<I: input::Pattern, Event: Clone> Filter<Event> for On<I, Event> {

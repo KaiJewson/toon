@@ -17,6 +17,10 @@ all-features = true
 futures-util = "0.3.6"
 smartstring = "0.2.5"
 unicode-width = "0.1.8"
+os_pipe = "0.9.2"
+
+# TODO: when the PR gets merged, use it
+stdio-override = { git = "https://github.com/Koxiaet/stdio-override", rev = "687d84ea1a76ed99617cb9536a82bca542339c3a" }
 
 crossterm_crate = { package = "crossterm", version = "0.18.0", features = ["event-stream"], optional = true }
 

@@ -2,11 +2,14 @@
 
 use std::fs::{self, File};
 use std::future::Future;
-use std::io::{self, BufWriter, IoSlice, Stdout, Write};
+use std::io::{self, BufWriter, IoSlice, Write};
 #[cfg(unix)]
 use std::os::unix::io::{AsRawFd, RawFd};
 #[cfg(windows)]
 use std::os::windows::io::{AsRawHandle, RawHandle};
+
+use stdio_override::{StdoutOverride, StderrOverride};
+use os_pipe::PipeReader;
 
 use crate::{Color, CursorShape, Input, Intensity, Vec2};
 
@@ -32,9 +35,11 @@ pub trait Backend {
     /// Fails if initializing the backend fails.
     fn bind(self, io: Tty) -> Result<Self::Bound, Self::Error>;
 
-    /// Whether the backend supports multiple backends being created at once. Default is `false`.
+    /// Whether the backend is a dummy backend that does not need real access to a TTY.
+    ///
+    /// Default is `false`.
     #[must_use]
-    fn supports_multiple() -> bool {
+    fn is_dummy() -> bool {
         false
     }
 }
@@ -109,10 +114,10 @@ pub trait Bound: for<'a> ReadEvents<'a, EventError = <Self as Bound>::Error> + S
     /// Flush all buffered actions to the tty.
     fn flush(&mut self) -> Result<(), Self::Error>;
 
-    /// Reset the terminal to its initial state.
+    /// Reset the terminal to its initial state, returning the TTY.
     ///
     /// This will always be called.
-    fn reset(self) -> Result<(), Self::Error>;
+    fn reset(self) -> Result<Tty, Self::Error>;
 }
 
 /// Backends which can read events.
@@ -147,51 +152,67 @@ pub enum TerminalEvent {
 /// inconsistencies.
 #[derive(Debug)]
 pub struct Tty {
-    inner: BufWriter<TtyInner>,
+    inner: Option<BufWriter<TtyInner>>,
 }
 
 impl Tty {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn dummy() -> Self {
         Self {
-            inner: BufWriter::new(TtyInner::default()),
+            inner: None
         }
+    }
+    pub(crate) fn new() -> io::Result<(Self, PipeReader)> {
+        let (inner, writer) = TtyInner::new()?;
+        Ok((Self { inner: Some(BufWriter::new(inner)), }, writer))
+    }
+    pub(crate) fn cleanup(self) -> io::Result<()> {
+        if let Some(inner) = self.inner {
+            inner.into_inner()?.cleanup()?;
+        }
+        Ok(())
     }
 }
 
 impl Write for Tty {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.inner.write(buf)
+        self.inner.as_mut().unwrap().write(buf)
     }
     fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
-        self.inner.write_vectored(bufs)
+        self.inner.as_mut().unwrap().write_vectored(bufs)
     }
     fn flush(&mut self) -> io::Result<()> {
-        self.inner.flush()
+        self.inner.as_mut().unwrap().flush()
     }
 }
 
 #[cfg(unix)]
 impl AsRawFd for Tty {
     fn as_raw_fd(&self) -> RawFd {
-        self.inner.get_ref().as_raw_fd()
+        self.inner.as_ref().unwrap().get_ref().as_raw_fd()
     }
 }
 #[cfg(windows)]
 impl AsRawHandle for Tty {
     fn as_raw_handle(&self) -> RawHandle {
-        self.inner.get_ref().as_raw_handle()
+        self.inner.as_ref().unwrap().get_ref().as_raw_handle()
     }
 }
 
 #[derive(Debug)]
-enum TtyInner {
-    Stdout(Stdout),
-    File(File),
+struct TtyInner {
+    stdout: StdoutOverride,
+    stderr: StderrOverride,
+    tty: Option<File>,
 }
 
-impl Default for TtyInner {
-    fn default() -> Self {
-        if cfg!(unix) {
+impl TtyInner {
+    fn new() -> io::Result<(Self, PipeReader)> {
+        let (rx, tx) = os_pipe::pipe()?;
+
+        let stdout = StdoutOverride::from_io_ref(&tx)?;
+        let stderr = StderrOverride::from_io(tx)?;
+
+        let tty = if cfg!(unix) {
             let tty_path = if cfg!(target_os = "redox") {
                 std::env::var("TTY").ok()
             } else {
@@ -205,32 +226,48 @@ impl Default for TtyInner {
                         .write(true)
                         .open(path)
                         .ok()
-                        .map(Self::File)
                 })
-                .unwrap_or_else(|| Self::Stdout(io::stdout()))
         } else {
-            Self::Stdout(io::stdout())
-        }
+            None
+        };
+
+        Ok((
+            Self {
+                stdout,
+                stderr,
+                tty,
+            },
+            rx,
+        ))
+    }
+    fn cleanup(self) -> io::Result<()> {
+        self.stdout.reset()?;
+        self.stderr.reset()?;
+        Ok(())
     }
 }
 
+#[allow(clippy::option_if_let_else)]
 impl Write for TtyInner {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        match self {
-            Self::Stdout(stdout) => stdout.write(buf),
-            Self::File(file) => file.write(buf),
+        if let Some(tty) = &mut self.tty {
+            tty.write(buf)
+        } else {
+            self.stdout.write(buf)
         }
     }
     fn write_vectored(&mut self, bufs: &[IoSlice<'_>]) -> io::Result<usize> {
-        match self {
-            Self::Stdout(stdout) => stdout.write_vectored(bufs),
-            Self::File(file) => file.write_vectored(bufs),
+        if let Some(tty) = &mut self.tty {
+            tty.write_vectored(bufs)
+        } else {
+            self.stdout.write_vectored(bufs)
         }
     }
     fn flush(&mut self) -> io::Result<()> {
-        match self {
-            Self::Stdout(stdout) => stdout.flush(),
-            Self::File(file) => file.flush(),
+        if let Some(tty) = &mut self.tty {
+            tty.flush()
+        } else {
+            self.stdout.flush()
         }
     }
 }
@@ -238,18 +275,13 @@ impl Write for TtyInner {
 #[cfg(unix)]
 impl AsRawFd for TtyInner {
     fn as_raw_fd(&self) -> RawFd {
-        match self {
-            Self::Stdout(stdout) => stdout.as_raw_fd(),
-            Self::File(file) => file.as_raw_fd(),
-        }
+        self.tty.as_ref().map_or_else(|| self.stdout.as_raw_fd(), |tty| tty.as_raw_fd())
     }
 }
 #[cfg(windows)]
 impl AsRawHandle for TtyInner {
     fn as_raw_handle(&self) -> RawHandle {
-        match self {
-            Self::Stdout(stdout) => stdout.as_raw_handle(),
-            Self::File(file) => file.as_raw_handle(),
-        }
+        // Windows doesn't have /dev/tty
+        self.stdout.as_raw_handle()
     }
 }
