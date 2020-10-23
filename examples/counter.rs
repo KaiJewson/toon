@@ -18,10 +18,10 @@ fn main() {
             let events = terminal
                 .draw(
                     toon::span(format_args!("The number is {}!", counter))
-                    .red()
-                    .bold()
-                    .on(' ', Event::Increment)
-                    .on('q', Event::Quit),
+                        .red()
+                        .bold()
+                        .on(' ', Event::Increment)
+                        .on('q', Event::Quit),
                 )
                 .await?;
 

@@ -1,8 +1,9 @@
+use std::cmp::min;
 use std::collections::VecDeque;
 use std::convert::Infallible;
 
-use unicode_width::UnicodeWidthStr;
 use futures_util::future;
+use unicode_width::UnicodeWidthStr;
 
 use crate::buffer::{Buffer, Grid};
 use crate::style::{Color, Intensity, Style};
@@ -103,7 +104,10 @@ impl Backend for Dummy {
     }
 
     fn bind(self, tty: Tty) -> Result<Self, <Self::Bound as Bound>::Error> {
-        Ok(Self { tty: Some(tty), ..self })
+        Ok(Self {
+            tty: Some(tty),
+            ..self
+        })
     }
 }
 
@@ -201,12 +205,10 @@ impl Bound for Dummy {
         self.operations.push(Operation::Write(text.to_owned()));
         self.buffer.write(self.cursor_pos, &text, self.style);
 
-        let x = self.cursor_pos.x + text.width() as u16;
-        let grid_width = self.buffer.grid.width();
-        self.cursor_pos = Vec2 {
-            x: x % grid_width,
-            y: self.cursor_pos.y + x / grid_width,
-        };
+        self.cursor_pos.x = min(
+            self.cursor_pos.x + text.width() as u16,
+            self.buffer.grid.width(),
+        );
 
         if let Some(cursor) = &mut self.buffer.cursor {
             cursor.pos = self.cursor_pos;

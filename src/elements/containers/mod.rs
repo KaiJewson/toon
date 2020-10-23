@@ -96,44 +96,6 @@ where
     }
 }
 
-// /// Extension trait for collections; types whose reference implements `IntoIterator`.
-// pub trait Collection: Sized
-// where
-//     for<'a> &'a Self: IntoIterator,
-// {
-//     /// Map the type in the collection.
-//     ///
-//     /// As mapping is done lazily, make sure that the function is fast.
-//     fn map<F>(self, f: F) -> Map<Self, F> {
-//         Map {
-//             collection: self,
-//             map: f,
-//         }
-//     }
-// }
-// 
-// impl<T> Collection for T where for<'a> &'a T: IntoIterator {}
-// 
-// /// Collection for the [`map`](trait.Collection.html#method.map) method.
-// #[derive(Debug, Clone, Copy)]
-// pub struct Map<C, F> {
-//     collection: C,
-//     map: F,
-// }
-// 
-// impl<'a, C, F, Res> IntoIterator for &'a Map<C, F>
-// where
-//     &'a C: IntoIterator,
-//     F: Fn(<&'a C as IntoIterator>::Item) -> Res,
-// {
-//     type Item = Res;
-//     type IntoIter = iter::Map<<&'a C as IntoIterator>::IntoIter, &'a F>;
-// 
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.collection.into_iter().map(&self.map)
-//     }
-// }
-
 /// An axis: X or Y.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Axis {

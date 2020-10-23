@@ -1,7 +1,8 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::io;
-use std::fmt::{self, Display, Formatter};
+use std::cmp::min;
 use std::error::Error as StdError;
+use std::fmt::{self, Display, Formatter};
+use std::io;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use os_pipe::PipeReader;
 
@@ -116,9 +117,22 @@ impl<B: Backend> Terminal<B> {
                         }
                     }
                     TerminalEvent::Resize(size) => {
-                        self.buffer.grid.resize(size);
-                        self.old_buffer.grid.resize(size);
-                        break;
+                        if size != self.buffer.grid.size() {
+                            self.buffer.grid.resize_width(size.x);
+                            self.old_buffer.grid.resize_width(size.x);
+
+                            self.buffer
+                                .grid
+                                .resize_height_with_anchor(size.y, self.cursor_pos.y);
+                            self.old_buffer
+                                .grid
+                                .resize_height_with_anchor(size.y, self.cursor_pos.y);
+
+                            self.cursor_pos.x = min(self.cursor_pos.x, size.x - 1);
+                            self.cursor_pos.y = min(self.cursor_pos.y, size.y - 1);
+
+                            break;
+                        }
                     }
                 }
             }
@@ -186,13 +200,13 @@ impl<B: Backend> Terminal<B> {
 
                 self.style = *new_style;
 
-                let x = pos.x + if new_contents_double { 2 } else { 1 };
-                let grid_width = self.buffer.grid.width();
-
-                self.cursor_pos = Vec2 {
-                    x: x % grid_width,
-                    y: pos.y + x / grid_width,
-                };
+                self.cursor_pos = Vec2::new(
+                    min(
+                        pos.x + if new_contents_double { 2 } else { 1 },
+                        self.buffer.grid.width() - 1,
+                    ),
+                    pos.y,
+                );
             }
         }
 

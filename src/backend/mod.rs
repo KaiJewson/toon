@@ -8,8 +8,8 @@ use std::os::unix::io::{AsRawFd, RawFd};
 #[cfg(windows)]
 use std::os::windows::io::{AsRawHandle, RawHandle};
 
-use stdio_override::{StdoutOverride, StderrOverride};
 use os_pipe::PipeReader;
+use stdio_override::{StderrOverride, StdoutOverride};
 
 use crate::{Color, CursorShape, Input, Intensity, Vec2};
 
@@ -157,13 +157,16 @@ pub struct Tty {
 
 impl Tty {
     pub(crate) fn dummy() -> Self {
-        Self {
-            inner: None
-        }
+        Self { inner: None }
     }
     pub(crate) fn new() -> io::Result<(Self, PipeReader)> {
         let (inner, writer) = TtyInner::new()?;
-        Ok((Self { inner: Some(BufWriter::new(inner)), }, writer))
+        Ok((
+            Self {
+                inner: Some(BufWriter::new(inner)),
+            },
+            writer,
+        ))
     }
     pub(crate) fn cleanup(self) -> io::Result<()> {
         if let Some(inner) = self.inner {
@@ -219,14 +222,13 @@ impl TtyInner {
                 Some("/dev/tty".to_owned())
             };
 
-            tty_path
-                .and_then(|path| {
-                    fs::OpenOptions::new()
-                        .read(true)
-                        .write(true)
-                        .open(path)
-                        .ok()
-                })
+            tty_path.and_then(|path| {
+                fs::OpenOptions::new()
+                    .read(true)
+                    .write(true)
+                    .open(path)
+                    .ok()
+            })
         } else {
             None
         };
@@ -275,7 +277,9 @@ impl Write for TtyInner {
 #[cfg(unix)]
 impl AsRawFd for TtyInner {
     fn as_raw_fd(&self) -> RawFd {
-        self.tty.as_ref().map_or_else(|| self.stdout.as_raw_fd(), |tty| tty.as_raw_fd())
+        self.tty
+            .as_ref()
+            .map_or_else(|| self.stdout.as_raw_fd(), |tty| tty.as_raw_fd())
     }
 }
 #[cfg(windows)]

@@ -19,7 +19,10 @@ impl<T> Span<T> {
     /// function is preferred.
     #[must_use]
     pub fn new(text: T) -> Self {
-        Self { text, style: Style::default() }
+        Self {
+            text,
+            style: Style::default(),
+        }
     }
 }
 

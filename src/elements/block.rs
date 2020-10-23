@@ -1,4 +1,4 @@
-use crate::{Color, Element, Output, Input, Events};
+use crate::{Color, Element, Events, Input, Output};
 
 /// A block of a single color.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -13,9 +13,7 @@ impl Block {
     /// [`fill`](fn.fill.html) functions is preferred.
     #[must_use]
     pub const fn new(color: Option<Color>) -> Self {
-        Self {
-            color
-        }
+        Self { color }
     }
 }
 

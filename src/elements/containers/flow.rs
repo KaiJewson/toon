@@ -66,7 +66,7 @@ impl<E> Flow<E> {
         &'a E: IntoIterator,
         <&'a E as IntoIterator>::Item: Element<Event>,
     {
-        let main_axis_extra_space = main_axis_size.saturating_sub(
+        let mut main_axis_extra_space = main_axis_size.saturating_sub(
             self.elements
                 .into_iter()
                 .map(|element| match self.axis {
@@ -76,39 +76,36 @@ impl<E> Flow<E> {
                 .fold(0, u16::saturating_add),
         );
 
-        // Find a maximum growth that fills the container
-        (1..)
-            .find_map(|maximum_growth| {
-                let mut all_elements_are_at_max_size = true;
-                let mut remaining_space = main_axis_extra_space;
+        if main_axis_extra_space == 0 {
+            return (0, self.elements.into_iter().count());
+        }
 
-                for (i, element) in self.elements.into_iter().enumerate() {
-                    let (min_main_axis_size, max_main_axis_size) = match self.axis {
-                        Axis::X => element.width(cross_axis_size),
-                        Axis::Y => element.height(cross_axis_size),
-                    };
-                    let element_range = max_main_axis_size - min_main_axis_size;
+        for maximum_growth in 1.. {
+            let mut elements_grew = false;
 
-                    if maximum_growth < element_range {
-                        all_elements_are_at_max_size = false;
-                    }
+            for (i, element) in self.elements.into_iter().enumerate() {
+                let (min_main_axis_size, max_main_axis_size) = match self.axis {
+                    Axis::X => element.width(cross_axis_size),
+                    Axis::Y => element.height(cross_axis_size),
+                };
 
-                    remaining_space =
-                        remaining_space.saturating_sub(min(element_range, maximum_growth));
+                if max_main_axis_size - min_main_axis_size >= maximum_growth {
+                    elements_grew = true;
 
-                    if remaining_space == 0 {
-                        return Some((maximum_growth, i));
+                    main_axis_extra_space -= 1;
+
+                    if main_axis_extra_space == 0 {
+                        return (maximum_growth, i);
                     }
                 }
+            }
 
-                if all_elements_are_at_max_size {
-                    // We won't be able to fill the entire container
-                    return Some((u16::MAX, 0));
-                }
-
-                None
-            })
-            .unwrap()
+            if !elements_grew {
+                // We haven't filled the container, but no elements can grow to fill it, so exit.
+                return (u16::MAX, 0);
+            }
+        }
+        unreachable!()
     }
 
     /// An iterator over elements and their main axis sizes.

@@ -37,6 +37,7 @@ impl Backend for Crossterm {
             io,
             terminal::EnterAlternateScreen,
             terminal::Clear(terminal::ClearType::All),
+            terminal::DisableLineWrap,
             event::EnableMouseCapture,
         )?;
 

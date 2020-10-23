@@ -5,14 +5,14 @@
 
 use crate::{input, Element};
 
-pub use filter::*;
 pub use containers::*;
+pub use filter::*;
 
 pub use block::*;
 pub use span::*;
 
-pub mod filter;
 pub mod containers;
+pub mod filter;
 
 mod block;
 mod span;
@@ -42,7 +42,10 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
     where
         Event: Clone,
     {
-        self.filter(On { input_pattern, event })
+        self.filter(On {
+            input_pattern,
+            event,
+        })
     }
 
     /// Erase the element's type by boxing it.

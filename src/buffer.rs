@@ -1,8 +1,10 @@
 //! Data structures representing terminals.
 
-use smartstring::{LazyCompact, SmartString};
+use std::cmp::Ordering;
 use std::fmt::Display;
 use std::iter;
+
+use smartstring::{LazyCompact, SmartString};
 use unicode_width::UnicodeWidthChar;
 
 use crate::{Cursor, Element, Events, Input, Output, Style, Vec2};
@@ -104,21 +106,39 @@ impl Grid {
         }
     }
 
-    /// Resize the grid's height.
+    /// Resize the grid's height, using an anchor line. Lines will be removed from the bottom until
+    /// the anchor line is reached, and then they will be removed from the top to avoid removing
+    /// the anchor line. Adding lines will as usual add them to the bottom.
+    ///
+    /// All new cells will be empty.
+    pub fn resize_height_with_anchor(&mut self, new_height: u16, anchor_line: u16) {
+        match usize::from(new_height).cmp(&self.lines.len()) {
+            Ordering::Greater => self.resize_height(new_height),
+            Ordering::Equal => {}
+            Ordering::Less => {
+                let new_height = usize::from(new_height);
+                let anchor_line = usize::from(anchor_line);
+
+                if new_height > anchor_line {
+                    self.lines.truncate(new_height);
+                } else {
+                    let after_anchor = anchor_line + 1;
+                    self.lines.truncate(after_anchor);
+                    self.lines
+                        .drain(0..after_anchor - new_height)
+                        .for_each(drop);
+                }
+            }
+        }
+    }
+
+    /// Resize te grid's height from the bottom of the grid.
     ///
     /// All new cells will be empty.
     pub fn resize_height(&mut self, new_height: u16) {
+        let width = self.width;
         self.lines
-            .resize(usize::from(new_height), Line::new(self.width));
-    }
-
-    /// Resize the grid.
-    ///
-    /// All new cells will be empty. If resizing a line cuts off a double cell, that double cell
-    /// becomes a space.
-    pub fn resize(&mut self, new_size: Vec2<u16>) {
-        self.resize_width(new_size.x);
-        self.resize_height(new_size.y);
+            .resize_with(usize::from(new_height), || Line::new(width));
     }
 }
 
@@ -377,6 +397,17 @@ pub enum Cell {
     Continuation,
 }
 
+impl Cell {
+    /// Get the contents of the cell, if present.
+    #[must_use]
+    pub fn contents(&self) -> Option<&str> {
+        match self {
+            Self::Char { contents, .. } => Some(&**contents),
+            _ => None,
+        }
+    }
+}
+
 #[cfg(test)]
 #[test]
 fn test_line() {
@@ -422,13 +453,7 @@ fn test_line() {
     }
 
     fn line_contents(line: &Line) -> String {
-        line.cells
-            .iter()
-            .map(|cell| match cell {
-                Cell::Char { contents, .. } => &contents,
-                Cell::Continuation => "",
-            })
-            .collect()
+        line.cells.iter().filter_map(Cell::contents).collect()
     }
 
     let mut line = Line::new(0);
@@ -468,4 +493,44 @@ fn test_line() {
     line.resize(4);
     assert_invariants(&line);
     assert_eq!(line_contents(&line), "  a ");
+}
+
+#[cfg(test)]
+#[test]
+fn test_resize_anchor() {
+    let mut grid = Grid::new(Vec2::new(1, 3));
+
+    grid.write_char(Vec2::new(0, 0), '0', Style::default());
+    grid.write_char(Vec2::new(0, 1), '1', Style::default());
+    grid.write_char(Vec2::new(0, 2), '2', Style::default());
+
+    grid.resize_height_with_anchor(2, 2);
+
+    assert_eq!(grid.lines().len(), 2);
+    assert_eq!(grid.lines()[0].cells()[0].contents(), Some("1"));
+    assert_eq!(grid.lines()[1].cells()[0].contents(), Some("2"));
+
+    grid.resize_height_with_anchor(1, 0);
+
+    assert_eq!(grid.lines().len(), 1);
+    assert_eq!(grid.lines()[0].cells()[0].contents(), Some("1"));
+
+    grid.resize_height_with_anchor(5, 3);
+
+    assert_eq!(grid.lines().len(), 5);
+    assert_eq!(grid.lines()[0].cells()[0].contents(), Some("1"));
+    for i in 1..5 {
+        assert_eq!(
+            grid.lines()[usize::from(i)].cells()[0].contents(),
+            Some(" ")
+        );
+        grid.write(Vec2::new(0, i), &i.to_string(), Style::default());
+    }
+
+    grid.resize_height_with_anchor(3, 3);
+
+    assert_eq!(grid.lines().len(), 3);
+    assert_eq!(grid.lines()[0].cells()[0].contents(), Some("1"));
+    assert_eq!(grid.lines()[1].cells()[0].contents(), Some("2"));
+    assert_eq!(grid.lines()[2].cells()[0].contents(), Some("3"));
 }
