@@ -1,21 +1,54 @@
 //! Containers for several elements.
 
 use std::iter;
-use std::marker::PhantomData;
+use std::slice;
 
-use crate::{Element, Vec2};
+use crate::Element;
+use crate::Vec2;
 
 pub use flow::*;
+pub use stack::*;
 
 mod flow;
+mod stack;
 
-/// A tuple of elements that can be used with containers in this module, created by the
-/// [`tuple`](fn.tuple.html) function.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct Tuple<T, Event> {
-    /// The tuple containing the elements.
-    pub tuple: T,
-    event: PhantomData<Event>,
+/// A collection of elements, held by containers.
+///
+/// This trait is implemented for vectors of elements and tuples of elements (which can be
+/// different types).
+///
+/// Note that ideally all collections would just use any type whose reference implements
+/// `IntoIterator` for any element type, but bugs in rustc mean that it doesn't work.
+pub trait Collection<'a, Event: 'a> {
+    /// An iterator over the collection.
+    type Iter: Iterator<Item = &'a dyn Element<Event>> + DoubleEndedIterator + 'a;
+
+    /// Iterate over the collection.
+    fn iter(&'a self) -> Self::Iter;
+
+    /// Get the number of elements in the collection.
+    fn len(&'a self) -> usize {
+        self.iter().count()
+    }
+
+    /// Get whether the collection is empty.
+    fn is_empty(&'a self) -> bool {
+        self.len() == 0
+    }
+}
+
+type ElementDynifier<'a, E, Event> = fn(&'a E) -> &'a dyn Element<Event>;
+
+impl<'a, E: Element<Event> + 'a, Event: 'a> Collection<'a, Event> for Vec<E> {
+    type Iter = iter::Map<slice::Iter<'a, E>, ElementDynifier<'a, E, Event>>;
+
+    fn iter(&'a self) -> Self::Iter {
+        (**self).iter().map(|element| element)
+    }
+
+    fn len(&'a self) -> usize {
+        self.len()
+    }
 }
 
 macro_rules! tupiter {
@@ -40,25 +73,34 @@ macro_rules! create_tupiter {
     };
 }
 
-macro_rules! impl_into_iterator_for_element_tuple {
+macro_rules! tuple_len {
+    () => { 0 };
+    ($x:ty,) => { 1 };
+    ($x:ty, $($xs:ty,)*) => { 1 + tuple_len!($($xs,)*) };
+}
+
+macro_rules! impl_collection_for_tuples {
     ($(($($param:ident),*),)*) => {$(
-        impl<'a, Event, $($param,)*> IntoIterator for &'a Tuple<($($param,)*), Event>
+        impl<'a, Event: 'a, $($param,)*> Collection<'a, Event> for ($($param,)*)
         where
             $($param: Element<Event>,)*
         {
-            type Item = &'a dyn Element<Event>;
-            type IntoIter = tupiter!($($param,)*);
+            type Iter = tupiter!($($param,)*);
 
-            fn into_iter(self) -> Self::IntoIter {
+            fn iter(&'a self) -> Self::Iter {
                 #[allow(non_snake_case)]
-                let ($($param,)*) = &self.tuple;
+                let ($($param,)*) = self;
                 create_tupiter!($($param,)*)
+            }
+
+            fn len(&'a self) -> usize {
+                tuple_len!($($param,)*)
             }
         }
     )*}
 }
 
-impl_into_iterator_for_element_tuple! {
+impl_collection_for_tuples! {
     (),
     (A),
     (A, B),
@@ -71,29 +113,6 @@ impl_into_iterator_for_element_tuple! {
     (A, B, C, D, E, F, G, H, I),
     (A, B, C, D, E, F, G, H, I, J),
     (A, B, C, D, E, F, G, H, I, J, K),
-}
-
-/// Create a collection of elements from a tuple.
-///
-/// # Examples
-///
-/// ```
-/// // The element will display as two lines at the top and bottom of the screen.
-/// let element = toon::column(toon::tuple::<_, ()>((
-///     toon::span("At the top of the screen"),
-///     toon::empty(),
-///     toon::span("At the bottom of the screen"),
-/// )));
-/// ```
-#[must_use]
-pub fn tuple<T, Event>(tuple: T) -> Tuple<T, Event>
-where
-    for<'a> &'a Tuple<T, Event>: IntoIterator<Item = &'a dyn Element<Event>>,
-{
-    Tuple {
-        tuple,
-        event: PhantomData,
-    }
 }
 
 /// An axis: X or Y.

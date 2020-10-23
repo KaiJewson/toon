@@ -1,7 +1,7 @@
 use std::cmp::min;
 use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
-use std::io;
+use std::io::{self, IoSliceMut, Read};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use os_pipe::PipeReader;
@@ -16,6 +16,10 @@ static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 ///
 /// For backends that aren't dummies, only one terminal may exist at once; attempting to
 /// create more than one at once will panic.
+///
+/// Terminals automatically capture all standard output and standard error while they are alive,
+/// and print it when they are dropped. However, you can also take ownership of it via the
+/// [`take_captured`](#method.take_captured) method.
 #[derive(Debug)]
 pub struct Terminal<B: Backend> {
     /// Only `None` during destruction of the type.
@@ -256,6 +260,17 @@ impl<B: Backend> Terminal<B> {
         self.backend.as_mut().unwrap()
     }
 
+    /// Take the captured standard output and standard error from the terminal.
+    ///
+    /// The terminal will no longer print all captured data to the standard output when the program
+    /// terminates.
+    ///
+    /// This will return `None` if the backend is a dummy backend or the captured stdio has already
+    /// been taken.
+    pub fn take_captured(&mut self) -> Option<Captured> {
+        self.captured.take().map(Captured)
+    }
+
     /// Clean up the terminal.
     ///
     /// This will be called in the destructor too, but use this if you want to handle errors
@@ -323,6 +338,27 @@ impl<B: StdError + 'static> StdError for Error<B> {
             Self::Backend(e) => Some(e),
             Self::Io(e) => Some(e),
         }
+    }
+}
+
+/// Standard output and standard error that has been captured by Toon.
+#[derive(Debug)]
+pub struct Captured(PipeReader);
+
+impl Read for Captured {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        self.0.read(buf)
+    }
+    fn read_vectored(&mut self, bufs: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
+        self.0.read_vectored(bufs)
+    }
+}
+impl<'a> Read for &'a Captured {
+    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+        (&self.0).read(buf)
+    }
+    fn read_vectored(&mut self, bufs: &mut [IoSliceMut<'_>]) -> io::Result<usize> {
+        (&self.0).read_vectored(bufs)
     }
 }
 
