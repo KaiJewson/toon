@@ -1,7 +1,8 @@
 use std::cmp::{max, min};
 use std::iter;
 
-use crate::{Element, Events, Input, Output};
+use crate::output::{Ext as _, Output};
+use crate::{Element, Events, Input};
 
 use super::{Axis, Collection};
 
@@ -237,23 +238,11 @@ where
         {
             let size = self.axis.vec(element_main_axis_size, cross_axis_size);
 
-            let drawing_offset = self.axis.vec(offset, 0);
-
-            element.draw(&mut crate::output_with(
-                &mut *output,
-                |_| size,
-                |output, pos, c, style| output.write_char(pos + drawing_offset, c, style),
-                |output, title| {
-                    if self.focused == Some(i) {
-                        output.set_title(title);
-                    }
-                },
-                |output, cursor| {
-                    if self.focused == Some(i) {
-                        output.set_cursor(cursor);
-                    }
-                },
-            ));
+            element.draw(
+                &mut output
+                    .area(self.axis.vec(offset, 0), size)
+                    .focused(self.focused == Some(i)),
+            );
 
             offset += element_main_axis_size;
         }

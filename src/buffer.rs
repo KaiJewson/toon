@@ -524,7 +524,11 @@ fn test_resize_anchor() {
             grid.lines()[usize::from(i)].cells()[0].contents(),
             Some(" ")
         );
-        grid.write(Vec2::new(0, i), &i.to_string(), Style::default());
+        grid.write_char(
+            Vec2::new(0, i),
+            i.to_string().chars().next().unwrap(),
+            Style::default(),
+        );
     }
 
     grid.resize_height_with_anchor(3, 3);

@@ -3,7 +3,7 @@
 //! This module aims to cover most use cases of elements so you don't have to implement
 //! [`Element`](../trait.Element.html) yourself.
 
-use crate::{input, Element};
+use crate::{input, Element, Vec2};
 
 pub use containers::*;
 pub use filter::*;
@@ -22,11 +22,15 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
     /// Filter this element using the given filter.
     ///
     /// This is a shortcut method for [`Filtered::new`](filter/struct.Filtered.html#method.new).
+    #[must_use]
     fn filter<F: Filter<Event>>(self, filter: F) -> Filtered<Self, F> {
         Filtered::new(self, filter)
     }
 
     /// Trigger an event when an input occurs.
+    ///
+    /// The created element will listen to inputs _actively_; the input if it occurs will not be
+    /// passed to the inner element.
     ///
     /// # Examples
     ///
@@ -38,14 +42,43 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
     /// // When the 'q' key is pressed or the element is clicked an Exit event will be triggered.
     /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
     /// ```
+    #[must_use]
     fn on<I: input::Pattern>(self, input_pattern: I, event: Event) -> Filtered<Self, On<I, Event>>
     where
         Event: Clone,
     {
-        self.filter(On {
-            input_pattern,
-            event,
-        })
+        self.filter(On::new(input_pattern, event))
+    }
+
+    /// Trigger an event when an input occurs, passively; the inner element will still receive
+    /// all inputs.
+    #[must_use]
+    fn on_passive<I: input::Pattern>(
+        self,
+        input_pattern: I,
+        event: Event,
+    ) -> Filtered<Self, On<I, Event>>
+    where
+        Event: Clone,
+    {
+        self.filter(On::new(input_pattern, event).passive())
+    }
+
+    /// Make the element float with the given alignment.
+    ///
+    /// # Example
+    ///
+    /// Make the element its smallest size at the middle right of the screen.
+    ///
+    /// ```
+    /// use toon::{Alignment, ElementExt};
+    ///
+    /// # let element = toon::span("Hello World!").on((), ());
+    /// let element = element.float((Alignment::End, Alignment::Middle));
+    /// ```
+    #[must_use]
+    fn float(self, align: impl Into<Vec2<Alignment>>) -> Filtered<Self, Float> {
+        self.filter(Float::new(align))
     }
 
     /// Erase the element's type by boxing it.

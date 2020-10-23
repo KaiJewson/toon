@@ -6,22 +6,27 @@ use std::fmt::{self, Debug, Formatter};
 ///
 /// This trait is sealed - it cannot be implemented outside this crate - in order to prevent
 /// elements from suppressing other elements' events.
-pub trait Events<E>: sealed::Sealed {
+pub trait Events<Event>: sealed::Sealed {
     /// Add an event to the collection of events.
-    fn add(&mut self, event: E);
+    fn add(&mut self, event: Event);
 }
+
+impl<'a, T: Events<Event>, Event> Events<Event> for &'a mut T {
+    fn add(&mut self, event: Event) {
+        (*self).add(event);
+    }
+}
+impl<'a, T> sealed::Sealed for &'a mut T {}
 
 /// Extension methods for event collectors.
-pub trait Ext<E>: sealed::Sealed {
+pub trait Ext<Event>: Events<Event> + Sized {
     /// Map the type of event being collected.
-    fn map<F: Fn(E2) -> E, E2>(&mut self, f: F) -> Map<'_, E, F>;
-}
-
-impl<E> Ext<E> for dyn Events<E> {
-    fn map<F: Fn(E2) -> E, E2>(&mut self, f: F) -> Map<'_, E, F> {
+    fn map<F: Fn(Event2) -> Event, Event2>(self, f: F) -> Map<Self, F> {
         Map { inner: self, f }
     }
 }
+
+impl<T: Events<Event>, Event> Ext<Event> for T {}
 
 /// An event collector that collects events into a vector.
 pub(crate) struct Vector<E>(pub(crate) Vec<E>);
@@ -34,21 +39,21 @@ impl<E> Events<E> for Vector<E> {
 impl<E> sealed::Sealed for Vector<E> {}
 
 /// An event collector that maps events from one type to another.
-pub struct Map<'a, E, F> {
-    inner: &'a mut dyn Events<E>,
+pub struct Map<E, F> {
+    inner: E,
     f: F,
 }
-impl<'a, E, F> Debug for Map<'a, E, F> {
+impl<E, F> Debug for Map<E, F> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Map").finish()
     }
 }
-impl<'a, E, E2, F: Fn(E2) -> E> Events<E2> for Map<'a, E, F> {
-    fn add(&mut self, event: E2) {
+impl<E: Events<Event>, Event2, Event, F: Fn(Event2) -> Event> Events<Event2> for Map<E, F> {
+    fn add(&mut self, event: Event2) {
         self.inner.add((self.f)(event));
     }
 }
-impl<'a, E, F> sealed::Sealed for Map<'a, E, F> {}
+impl<E, F> sealed::Sealed for Map<E, F> {}
 
 mod sealed {
     pub trait Sealed {}

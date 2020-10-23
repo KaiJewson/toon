@@ -203,7 +203,9 @@ impl Bound for Dummy {
 
     fn write(&mut self, text: &str) -> Result<(), Self::Error> {
         self.operations.push(Operation::Write(text.to_owned()));
-        self.buffer.write(self.cursor_pos, &text, self.style);
+        for c in text.chars() {
+            self.buffer.write_char(self.cursor_pos, c, self.style);
+        }
 
         self.cursor_pos.x = min(
             self.cursor_pos.x + text.width() as u16,

@@ -39,7 +39,23 @@ impl<T> AsMut<Style> for Span<T> {
 
 impl<T: Display, Event> Element<Event> for Span<T> {
     fn draw(&self, output: &mut dyn Output) {
-        output.write(Vec2::new(0, 0), &self.text, self.style);
+        let mut pos = 0;
+
+        write!(
+            crate::util::WriteCharsFn(|c| {
+                let width = match c.width() {
+                    Some(width) => width,
+                    None => return,
+                } as u16;
+
+                output.write_char(Vec2::new(pos, 0), c, self.style);
+
+                pos += width;
+            }),
+            "{}",
+            self.text
+        )
+        .expect("formatting failed");
     }
     fn width(&self, _height: Option<u16>) -> (u16, u16) {
         let mut width = 0;

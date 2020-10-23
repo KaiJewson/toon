@@ -6,11 +6,15 @@
 //! such as [`on`](../trait.ElementExt.html#method.on).
 
 use std::fmt::Display;
+use std::marker::PhantomData;
 
-use crate::{Cursor, Element, Events, Input, Output, Style, Vec2};
+use crate::output::Output;
+use crate::{Cursor, Element, Events, Input, Style, Vec2};
 
+pub use float::*;
 pub use on::*;
 
+mod float;
 mod on;
 
 /// A wrapper around a single element that modifies it.
@@ -20,37 +24,39 @@ pub trait Filter<Event> {
     /// By default this method forwards to `filter_size`, `write_char`, `set_title` and
     /// `set_cursor`.
     fn draw(&self, element: &dyn Element<Event>, output: &mut dyn Output) {
-        element.draw(&mut crate::output_with(
-            output,
-            |output| self.filter_size(output.size()),
-            |output, pos, c, style| self.write_char(*output, pos, c, style),
-            |output, title| self.set_title(*output, title),
-            |output, cursor| self.set_cursor(*output, cursor),
-        ));
-    }
+        struct DrawFilterOutput<'a, F: ?Sized, Event> {
+            inner: &'a mut dyn Output,
+            filter: &'a F,
+            event: PhantomData<Event>,
+        }
+        impl<'a, F: Filter<Event> + ?Sized, Event> Output for DrawFilterOutput<'a, F, Event> {
+            fn size(&self) -> Vec2<u16> {
+                self.inner.size()
+            }
+            fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
+                self.filter.write_char(self.inner, pos, c, style);
+            }
+            fn set_title(&mut self, title: &dyn Display) {
+                self.filter.set_title(self.inner, title);
+            }
+            fn set_cursor(&mut self, cursor: Option<Cursor>) {
+                self.filter.set_cursor(self.inner, cursor);
+            }
+        }
 
-    /// Filter the size of the output.
-    ///
-    /// By default this method returns the original size.
-    fn filter_size(&self, original: Vec2<u16>) -> Vec2<u16> {
-        original
+        element.draw(&mut DrawFilterOutput {
+            inner: output,
+            filter: self,
+            event: PhantomData,
+        });
     }
 
     /// Write a single filtered character to the output.
     ///
-    /// By default this method filters the parameters with `filter_write_char` and then writes it
-    /// to the output.
+    /// By default this method filters the parameters with `filter_char` and `filter_style` and then
+    /// writes it to the output.
     fn write_char(&self, base: &mut dyn Output, pos: Vec2<u16>, c: char, style: Style) {
-        let (pos, c, style) = self.filter_write_char(pos, c, style);
-        base.write_char(pos, c, style);
-    }
-
-    /// Filter a character to be written to the output.
-    ///
-    /// By default this method forwards to `filter_char` and `filter_style`, keeping the position
-    /// the same.
-    fn filter_write_char(&self, pos: Vec2<u16>, c: char, style: Style) -> (Vec2<u16>, char, Style) {
-        (pos, self.filter_char(c), self.filter_style(style))
+        base.write_char(pos, self.filter_char(c), self.filter_style(style));
     }
 
     /// Filter the value of a character being written to the output.
@@ -121,8 +127,10 @@ pub trait Filter<Event> {
 /// An element with a filter applied.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Filtered<T, F> {
-    element: T,
-    filter: F,
+    /// The inner element.
+    pub element: T,
+    /// The filter applied to the element.
+    pub filter: F,
 }
 
 impl<T, F> Filtered<T, F> {

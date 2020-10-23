@@ -243,6 +243,7 @@ macro_rules! impl_input_pattern_for_tuples {
     ($(($($param:ident),*),)*) => {
         $(
             impl<$($param: Pattern,)*> Pattern for ($($param,)*) {
+                #[allow(unused_variables)]
                 fn matches(&self, input: Input) -> bool {
                     #[allow(non_snake_case)]
                     let ($($param,)*) = self;
@@ -254,6 +255,7 @@ macro_rules! impl_input_pattern_for_tuples {
     }
 }
 impl_input_pattern_for_tuples! {
+    (),
     (A),
     (A, B),
     (A, B, C),

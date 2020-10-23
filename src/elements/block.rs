@@ -1,4 +1,4 @@
-use crate::{Color, Element, Events, Input, Output};
+use crate::{Attributes, Color, Element, Events, Input, Output, Style, Vec2};
 
 /// A block of a single color.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -20,7 +20,14 @@ impl Block {
 impl<Event> Element<Event> for Block {
     fn draw(&self, output: &mut dyn Output) {
         if let Some(color) = self.color {
-            output.clear(color);
+            let size = output.size();
+            let style = Style::new(Color::default(), color, Attributes::default());
+
+            for x in 0..size.x {
+                for y in 0..size.y {
+                    output.write_char(Vec2 { x, y }, ' ', style);
+                }
+            }
         }
     }
     fn width(&self, _height: Option<u16>) -> (u16, u16) {

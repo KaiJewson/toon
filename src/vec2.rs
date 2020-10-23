@@ -48,6 +48,15 @@ impl<T> Vec2<T> {
         }
     }
 
+    /// Zip this vector with another, producing a vector of a tuples.
+    #[must_use]
+    pub fn zip<U>(self, other: Vec2<U>) -> Vec2<(T, U)> {
+        Vec2 {
+            x: (self.x, other.x),
+            y: (self.y, other.y),
+        }
+    }
+
     /// Get references to each of the components.
     pub fn as_ref(&self) -> Vec2<&T> {
         Vec2::new(&self.x, &self.y)

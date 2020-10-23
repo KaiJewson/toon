@@ -104,7 +104,7 @@ impl<B: Backend> Terminal<B> {
             self.diff()?;
             self.backend_mut().flush()?;
 
-            self.old_buffer.clear(Color::Default);
+            Element::<()>::draw(&crate::fill(Color::Default), &mut self.old_buffer);
             std::mem::swap(&mut self.old_buffer, &mut self.buffer);
 
             loop {
@@ -342,6 +342,11 @@ impl<B: StdError + 'static> StdError for Error<B> {
 }
 
 /// Standard output and standard error that has been captured by Toon.
+///
+/// Note that this is a synchronous reader, and `async-io` does not have the ability to make it
+/// asynchronous on Windows (as wepoll does not support pipes). So you if you want to use it
+/// asynchronously you'll have to wrap it in an
+/// [`Unblock`](https://docs.rs/blocking/1/blocking/struct.Unblock.html) or similar type.
 #[derive(Debug)]
 pub struct Captured(PipeReader);
 
@@ -368,9 +373,32 @@ fn test_diff_grid() {
     use crate::backend::Operation;
     use crate::{Attributes, Intensity};
 
+    use unicode_width::UnicodeWidthChar;
+
+    fn write_at(grid: &mut Grid, at: (u16, u16), text: &str, style: Style) {
+        let mut pos = at.0;
+        for c in text.chars() {
+            grid.write_char(Vec2::new(pos, at.1), c, style);
+            pos += c.width().unwrap_or(0) as u16;
+        }
+    }
+
     let mut old_grid = Grid::new(Vec2::new(16, 8));
-    old_grid.write(Vec2::new(2, 5), &"Hello World!", Style::default());
-    old_grid.write(Vec2::new(3, 6), &"😃", Style::default());
+    write_at(&mut old_grid, (2, 5), "Hello World!", Style::default());
+    write_at(&mut old_grid, (3, 6), "😃", Style::default());
+    let old_grid = old_grid;
+
+    // old grid:
+    // +----------------+
+    // |                |
+    // |                |
+    // |                |
+    // |                |
+    // |                |
+    // |  Hello World!  |
+    // |   😃           |
+    // |                |
+    // +----------------+
 
     let mut new_grid = old_grid.clone();
 
@@ -384,10 +412,24 @@ fn test_diff_grid() {
         },
     );
 
-    new_grid.write(Vec2::new(15, 2), &"abcd", style);
+    write_at(&mut new_grid, (15, 2), "abcd", style);
     style.foreground = Color::Green;
-    new_grid.write(Vec2::new(1, 5), &"foo", style);
-    new_grid.write(Vec2::new(4, 6), &"😃", style);
+    write_at(&mut new_grid, (1, 5), "foo", style);
+    write_at(&mut new_grid, (4, 6), "😃", style);
+
+    let new_grid = new_grid;
+
+    // new grid:
+    // +----------------+
+    // |                |
+    // |                |
+    // |               a| (bcd is cut off)
+    // |                |
+    // |                |
+    // | foollo World!  |
+    // |    😃          | (moved one to the right)
+    // |                |
+    // +----------------+
 
     let mut backend = crate::backend::Dummy::new(old_grid.size());
     backend.buffer.grid = old_grid.clone();
