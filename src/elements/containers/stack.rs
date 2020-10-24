@@ -65,7 +65,23 @@ where
 /// Create a [`Stack`](struct.Stack.html) of elements.
 ///
 /// By default inputs will not be broadcast to all elements.
-// TODO: Add examples
+///
+/// # Examples
+///
+/// Create a popup over the background element.
+///
+/// ```
+/// # let element = toon::empty();
+/// # #[derive(Clone)] enum Event { ClosePopup }
+/// use toon::{Alignment, ElementExt};
+///
+/// let element = toon::stack((
+///     element,
+///     toon::span("A popup message")
+///         .on('q', Event::ClosePopup)
+///         .float((Alignment::Middle, Alignment::Middle)),
+/// ));
+/// ```
 #[must_use]
 pub fn stack<E: for<'a> Collection<'a, Event>, Event>(elements: E) -> Stack<E> {
     Stack {

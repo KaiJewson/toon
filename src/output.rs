@@ -86,7 +86,7 @@ pub trait Ext: Output + Sized {
 impl<T: Output> Ext for T {}
 
 /// An [`Output`](trait.Output.html) that draws to an area of another output, created by the
-/// [`area`](trait.Output.html#method.area) method.
+/// [`area`](trait.Ext.html#method.area) method.
 #[derive(Debug)]
 pub struct Area<O> {
     inner: O,
@@ -122,7 +122,7 @@ impl<O: Output> Output for Area<O> {
 }
 
 /// An [`Output`](trait.Output.html) that may or may not be focused, created by the
-/// [`focused`](trait.Output.html#method.focused) function.
+/// [`focused`](trait.Ext.html#method.focused) function.
 #[derive(Debug)]
 pub struct MaybeFocused<O> {
     inner: O,
