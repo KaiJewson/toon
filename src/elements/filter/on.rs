@@ -42,7 +42,7 @@ impl<I, Event> On<I, Event> {
 }
 
 impl<I: input::Pattern, Event: Clone> Filter<Event> for On<I, Event> {
-    fn handle(&self, element: &dyn Element<Event>, input: Input, events: &mut dyn Events<Event>) {
+    fn handle<E: Element<Event = Event>>(&self, element: &E, input: Input, events: &mut dyn Events<Event>) {
         let matches = self.input_pattern.matches(input);
         if matches {
             events.add(self.event.clone());

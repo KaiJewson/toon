@@ -94,17 +94,17 @@ impl<B: Backend> Terminal<B> {
     /// # Errors
     ///
     /// Fails when drawing to the backend fails.
-    pub async fn draw<Event>(
+    pub async fn draw<E: Element>(
         &mut self,
-        element: impl Element<Event>,
-    ) -> Result<Vec<Event>, Error<B::Error>> {
+        element: E,
+    ) -> Result<Vec<E::Event>, Error<B::Error>> {
         loop {
             element.draw(&mut self.buffer);
 
             self.diff()?;
             self.backend_mut().flush()?;
 
-            Element::<()>::draw(&crate::fill(Color::Default), &mut self.old_buffer);
+            Element::draw(&crate::fill::<_, ()>(Color::Default), &mut self.old_buffer);
             std::mem::swap(&mut self.old_buffer, &mut self.buffer);
 
             loop {

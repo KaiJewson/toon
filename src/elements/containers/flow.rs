@@ -73,11 +73,11 @@ impl<E> Flow<E> {
 
 impl<E> Flow<E> {
     /// An iterator over the elements in the order of the bias. Panics if there is no bias.
-    fn elements_biased_order<'a, Event: 'a>(
+    fn elements_biased_order<'a>(
         &'a self,
-    ) -> impl Iterator<Item = &'a dyn Element<Event>>
+    ) -> impl Iterator<Item = &'a dyn Element<Event = <E as Collection<'a>>::Event>>
     where
-        E: Collection<'a, Event>,
+        E: Collection<'a>,
     {
         let bias = self.bias.unwrap();
 
@@ -95,13 +95,13 @@ impl<E> Flow<E> {
     /// axis. The second element of the tuple gives the index from the front (start bias) or back
     /// (end bias) at which the first element of the tuple is treated as one less. If there is no
     /// bias the value is ignored.
-    fn calculate_layout<'a, Event: 'a>(
+    fn calculate_layout<'a>(
         &'a self,
         main_axis_size: u16,
         cross_axis_size: Option<u16>,
     ) -> (u16, usize)
     where
-        E: Collection<'a, Event>,
+        E: Collection<'a>,
     {
         let mut main_axis_extra_space = main_axis_size.saturating_sub(
             self.elements
@@ -183,13 +183,13 @@ impl<E> Flow<E> {
     }
 
     /// An iterator over elements and their main axis sizes.
-    fn element_sizes<'a, Event: 'a>(
+    fn element_sizes<'a>(
         &'a self,
         main_axis_size: u16,
         cross_axis_size: Option<u16>,
-    ) -> impl Iterator<Item = (u16, &'a dyn Element<Event>)> + 'a
+    ) -> impl Iterator<Item = (u16, &'a dyn Element<Event = <E as Collection<'a>>::Event>)> + 'a
     where
-        E: Collection<'a, Event>,
+        E: Collection<'a>,
     {
         let (maximum_growth, dividing_point) =
             self.calculate_layout(main_axis_size, cross_axis_size);
@@ -223,10 +223,12 @@ impl<E> Flow<E> {
     }
 }
 
-impl<E, Event> Element<Event> for Flow<E>
+impl<E, Event> Element for Flow<E>
 where
-    for<'a> E: Collection<'a, Event>,
+    for<'a> E: Collection<'a, Event = Event>,
 {
+    type Event = Event;
+
     fn draw(&self, output: &mut dyn Output) {
         let (main_axis_size, cross_axis_size) = self.axis.main_cross_of(output.size());
 
@@ -346,8 +348,8 @@ pub enum End {
 /// An element that has text at the top, middle and bottom.
 ///
 /// ```
-/// let element = toon::column::<_, ()>((
-///     toon::span("At the top!"),
+/// let element = toon::column((
+///     toon::span::<_, ()>("At the top!"),
 ///     toon::empty(),
 ///     toon::span("At the middle!"),
 ///     toon::empty(),
@@ -355,7 +357,7 @@ pub enum End {
 /// ));
 /// ```
 #[must_use]
-pub fn column<E: for<'a> Collection<'a, Event>, Event>(elements: E) -> Flow<E> {
+pub fn column<E: for<'a> Collection<'a>>(elements: E) -> Flow<E> {
     Flow {
         elements,
         axis: Axis::Y,
@@ -375,8 +377,8 @@ pub fn column<E: for<'a> Collection<'a, Event>, Event>(elements: E) -> Flow<E> {
 /// An element that has text at the left, middle and right.
 ///
 /// ```
-/// let element = toon::row::<_, ()>((
-///     toon::span("On the left!"),
+/// let element = toon::row((
+///     toon::span::<_, ()>("On the left!"),
 ///     toon::empty(),
 ///     toon::span("In the middle!"),
 ///     toon::empty(),
@@ -384,7 +386,7 @@ pub fn column<E: for<'a> Collection<'a, Event>, Event>(elements: E) -> Flow<E> {
 /// ));
 /// ```
 #[must_use]
-pub fn row<E: for<'a> Collection<'a, Event>, Event>(elements: E) -> Flow<E> {
+pub fn row<E: for<'a> Collection<'a>>(elements: E) -> Flow<E> {
     Flow {
         elements,
         axis: Axis::X,

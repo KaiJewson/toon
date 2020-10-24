@@ -34,7 +34,7 @@ pub enum Alignment {
 }
 
 impl<Event> Filter<Event> for Float {
-    fn draw(&self, element: &dyn Element<Event>, output: &mut dyn Output) {
+    fn draw<E: Element>(&self, element: &E, output: &mut dyn Output) {
         let width = element.width(None).0;
         let height = element.height(Some(width)).0;
         let size = Vec2::min(Vec2::new(width, height), output.size());

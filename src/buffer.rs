@@ -7,7 +7,7 @@ use std::iter;
 use smartstring::{LazyCompact, SmartString};
 use unicode_width::UnicodeWidthChar;
 
-use crate::{Cursor, Element, Events, Input, Output, Style, Vec2};
+use crate::{Cursor, Output, Style, Vec2};
 
 /// A terminal state.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -42,21 +42,6 @@ impl Output for Buffer {
     fn set_cursor(&mut self, cursor: Option<Cursor>) {
         self.cursor = cursor;
     }
-}
-
-impl<E> Element<E> for Buffer {
-    fn draw(&self, output: &mut dyn Output) {
-        <_ as Element<E>>::draw(&self.grid, output);
-        output.set_title(&self.title);
-        output.set_cursor(self.cursor);
-    }
-    fn width(&self, _height: Option<u16>) -> (u16, u16) {
-        (self.grid.width(), self.grid.width())
-    }
-    fn height(&self, _width: Option<u16>) -> (u16, u16) {
-        (self.grid.height(), self.grid.height())
-    }
-    fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
 
 /// The grid of characters on a terminal.
@@ -154,34 +139,6 @@ impl Output for Grid {
 
     fn set_title(&mut self, _title: &dyn Display) {}
     fn set_cursor(&mut self, _cursor: Option<Cursor>) {}
-}
-
-impl<E> Element<E> for Grid {
-    fn draw(&self, output: &mut dyn Output) {
-        for (y, line) in self.lines.iter().enumerate() {
-            let y = y as u16;
-
-            for (x, cell) in line.cells.iter().enumerate() {
-                let x = x as u16;
-
-                if let Cell::Char {
-                    contents, style, ..
-                } = cell
-                {
-                    for c in contents.chars() {
-                        output.write_char(Vec2::new(x, y), c, *style);
-                    }
-                }
-            }
-        }
-    }
-    fn width(&self, _height: Option<u16>) -> (u16, u16) {
-        (self.width(), self.width())
-    }
-    fn height(&self, _width: Option<u16>) -> (u16, u16) {
-        (self.height(), self.height())
-    }
-    fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
 
 /// A line of cells in a terminal.
@@ -348,30 +305,6 @@ impl Output for Line {
 
     fn set_title(&mut self, _title: &dyn Display) {}
     fn set_cursor(&mut self, _cursor: Option<Cursor>) {}
-}
-
-impl<E> Element<E> for Line {
-    fn draw(&self, output: &mut dyn Output) {
-        for (x, cell) in self.cells.iter().enumerate() {
-            let x = x as u16;
-
-            if let Cell::Char {
-                contents, style, ..
-            } = cell
-            {
-                for c in contents.chars() {
-                    output.write_char(Vec2::new(x, 0), c, *style);
-                }
-            }
-        }
-    }
-    fn width(&self, _height: Option<u16>) -> (u16, u16) {
-        (self.len(), self.len())
-    }
-    fn height(&self, _width: Option<u16>) -> (u16, u16) {
-        (1, 1)
-    }
-    fn handle(&self, _input: Input, _events: &mut dyn Events<E>) {}
 }
 
 /// A cell in a terminal.

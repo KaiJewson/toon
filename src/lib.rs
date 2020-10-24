@@ -68,7 +68,10 @@ mod vec2;
 ///
 /// You shouldn't generally have to implement this trait yourself unless you're doing something
 /// really niche. Instead, combine elements from the [`elements`](elements/index.html) module.
-pub trait Element<Event> {
+pub trait Element {
+    /// Events that this element produces.
+    type Event;
+
     /// Draw the element to the output.
     fn draw(&self, output: &mut dyn Output);
 
@@ -79,10 +82,12 @@ pub trait Element<Event> {
     fn height(&self, width: Option<u16>) -> (u16, u16);
 
     /// React to the input and output events if necessary.
-    fn handle(&self, input: Input, events: &mut dyn Events<Event>);
+    fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>);
 }
 
-impl<'a, E: Element<Event> + ?Sized, Event> Element<Event> for &'a E {
+impl<'a, E: Element + ?Sized> Element for &'a E {
+    type Event = E::Event;
+
     fn draw(&self, output: &mut dyn Output) {
         (*self).draw(output)
     }
@@ -92,7 +97,7 @@ impl<'a, E: Element<Event> + ?Sized, Event> Element<Event> for &'a E {
     fn height(&self, width: Option<u16>) -> (u16, u16) {
         (*self).height(width)
     }
-    fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
+    fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         (*self).handle(input, events)
     }
 }
@@ -100,7 +105,9 @@ impl<'a, E: Element<Event> + ?Sized, Event> Element<Event> for &'a E {
 macro_rules! implement_element_forwarding {
     ($($name:ident),*) => {
         $(
-            impl<'a, Event, E: Element<Event> + ?Sized> Element<Event> for $name<E> {
+            impl<'a, E: Element + ?Sized> Element for $name<E> {
+                type Event = E::Event;
+
                 fn draw(&self, output: &mut dyn Output) {
                     (**self).draw(output)
                 }
@@ -110,7 +117,7 @@ macro_rules! implement_element_forwarding {
                 fn height(&self, width: Option<u16>) -> (u16, u16) {
                     (**self).height(width)
                 }
-                fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
+                fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
                     (**self).handle(input, events)
                 }
             }

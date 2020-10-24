@@ -19,9 +19,12 @@ mod stack;
 ///
 /// Note that ideally all collections would just use any type whose reference implements
 /// `IntoIterator` for any element type, but bugs in rustc mean that it doesn't work.
-pub trait Collection<'a, Event: 'a> {
+pub trait Collection<'a> {
+    /// The events of the elements in the collection.
+    type Event: 'a;
+
     /// An iterator over the collection.
-    type Iter: Iterator<Item = &'a dyn Element<Event>> + DoubleEndedIterator + 'a;
+    type Iter: Iterator<Item = &'a dyn Element<Event = Self::Event>> + DoubleEndedIterator + 'a;
 
     /// Iterate over the collection.
     fn iter(&'a self) -> Self::Iter;
@@ -37,10 +40,10 @@ pub trait Collection<'a, Event: 'a> {
     }
 }
 
-type ElementDynifier<'a, E, Event> = fn(&'a E) -> &'a dyn Element<Event>;
-
-impl<'a, E: Element<Event> + 'a, Event: 'a> Collection<'a, Event> for Vec<E> {
-    type Iter = iter::Map<slice::Iter<'a, E>, ElementDynifier<'a, E, Event>>;
+impl<'a, E: Element + 'a> Collection<'a> for Vec<E> {
+    type Event = E::Event;
+    #[allow(clippy::type_complexity)]
+    type Iter = iter::Map<slice::Iter<'a, E>, fn(&'a E) -> &'a dyn Element<Event = Self::Event>>;
 
     fn iter(&'a self) -> Self::Iter {
         (**self).iter().map(|element| element)
@@ -52,8 +55,8 @@ impl<'a, E: Element<Event> + 'a, Event: 'a> Collection<'a, Event> for Vec<E> {
 }
 
 macro_rules! tupiter {
-    () => { iter::Empty<&'a dyn Element<Event>> };
-    ($x:ty,) => { iter::Once<&'a dyn Element<Event>> };
+    () => { iter::Empty<&'a dyn Element<Event = Self::Event>> };
+    ($x:ty,) => { iter::Once<&'a dyn Element<Event = Self::Event>> };
     ($x:ty, $($xs:ty,)*) => {
         iter::Chain<
             tupiter!($x,),
@@ -63,8 +66,8 @@ macro_rules! tupiter {
 }
 
 macro_rules! create_tupiter {
-    () => { iter::empty::<&'a dyn Element<Event>>() };
-    ($x:expr,) => { iter::once::<&'a dyn Element<Event>>($x) };
+    () => { iter::empty::<&'a dyn Element<Event = Self::Event>>() };
+    ($x:expr,) => { iter::once::<&'a dyn Element<Event = Self::Event>>($x) };
     ($x:expr, $($xs:expr,)*) => {
         Iterator::chain(
             create_tupiter!($x,),
@@ -80,29 +83,31 @@ macro_rules! tuple_len {
 }
 
 macro_rules! impl_collection_for_tuples {
-    ($(($($param:ident),*),)*) => {$(
-        impl<'a, Event: 'a, $($param,)*> Collection<'a, Event> for ($($param,)*)
+    ($(($first:ident, $($param:ident),*),)*) => {$(
+        impl<'a, $first, $($param,)*> Collection<'a> for ($first, $($param,)*)
         where
-            $($param: Element<Event>,)*
+            $first: Element,
+            <$first as Element>::Event: 'a,
+            $($param: Element<Event = <$first as Element>::Event>,)*
         {
-            type Iter = tupiter!($($param,)*);
+            type Event = <$first as Element>::Event;
+            type Iter = tupiter!($first, $($param,)*);
 
             fn iter(&'a self) -> Self::Iter {
                 #[allow(non_snake_case)]
-                let ($($param,)*) = self;
-                create_tupiter!($($param,)*)
+                let ($first, $($param,)*) = self;
+                create_tupiter!($first, $($param,)*)
             }
 
             fn len(&'a self) -> usize {
-                tuple_len!($($param,)*)
+                tuple_len!($first, $($param,)*)
             }
         }
     )*}
 }
 
 impl_collection_for_tuples! {
-    (),
-    (A),
+    (A,),
     (A, B),
     (A, B, C),
     (A, B, C, D),

@@ -18,12 +18,12 @@ mod block;
 mod span;
 
 /// An extension trait for elements providing useful methods.
-pub trait ElementExt<Event>: Element<Event> + Sized {
+pub trait ElementExt: Element + Sized {
     /// Filter this element using the given filter.
     ///
     /// This is a shortcut method for [`Filtered::new`](filter/struct.Filtered.html#method.new).
     #[must_use]
-    fn filter<F: Filter<Event>>(self, filter: F) -> Filtered<Self, F> {
+    fn filter<F: Filter<Self::Event>>(self, filter: F) -> Filtered<Self, F> {
         Filtered::new(self, filter)
     }
 
@@ -43,9 +43,9 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
     /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
     /// ```
     #[must_use]
-    fn on<I: input::Pattern>(self, input_pattern: I, event: Event) -> Filtered<Self, On<I, Event>>
+    fn on<I: input::Pattern>(self, input_pattern: I, event: Self::Event) -> Filtered<Self, On<I, Self::Event>>
     where
-        Event: Clone,
+        Self::Event: Clone,
     {
         self.filter(On::new(input_pattern, event))
     }
@@ -56,10 +56,10 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
     fn on_passive<I: input::Pattern>(
         self,
         input_pattern: I,
-        event: Event,
-    ) -> Filtered<Self, On<I, Event>>
+        event: Self::Event,
+    ) -> Filtered<Self, On<I, Self::Event>>
     where
-        Event: Clone,
+        Self::Event: Clone,
     {
         self.filter(On::new(input_pattern, event).passive())
     }
@@ -82,11 +82,11 @@ pub trait ElementExt<Event>: Element<Event> + Sized {
     }
 
     /// Erase the element's type by boxing it.
-    fn boxed<'a>(self) -> Box<dyn Element<Event> + 'a>
+    fn boxed<'a>(self) -> Box<dyn Element<Event = Self::Event> + 'a>
     where
         Self: 'a,
     {
         Box::new(self)
     }
 }
-impl<Event, T: Element<Event>> ElementExt<Event> for T {}
+impl<T: Element> ElementExt for T {}

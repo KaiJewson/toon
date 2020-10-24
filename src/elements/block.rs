@@ -1,23 +1,27 @@
+use std::marker::PhantomData;
+
 use crate::{Attributes, Color, Element, Events, Input, Output, Style, Vec2};
 
 /// A block of a single color.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
-#[non_exhaustive]
-pub struct Block {
+pub struct Block<Event> {
     /// The color of the block. If set to `None` this block will be transparent.
     pub color: Option<Color>,
+    event: PhantomData<Event>,
 }
 
-impl Block {
+impl<Event> Block<Event> {
     /// Create a new block with the given color. Note that use of the [`clear`](fn.clear.html) and
     /// [`fill`](fn.fill.html) functions is preferred.
     #[must_use]
     pub const fn new(color: Option<Color>) -> Self {
-        Self { color }
+        Self { color, event: PhantomData }
     }
 }
 
-impl<Event> Element<Event> for Block {
+impl<Event> Element for Block<Event> {
+    type Event = Event;
+
     fn draw(&self, output: &mut dyn Output) {
         if let Some(color) = self.color {
             let size = output.size();
@@ -45,15 +49,15 @@ impl<Event> Element<Event> for Block {
 ///
 /// ```
 /// // A red block.
-/// let element = toon::fill(toon::Color::Red);
+/// let element: toon::Block<()> = toon::fill(toon::Color::Red);
 /// ```
 #[must_use]
-pub fn fill(color: impl Into<Color>) -> Block {
+pub fn fill<C: Into<Color>, Event>(color: C) -> Block<Event> {
     Block::new(Some(color.into()))
 }
 
 /// Create a transparent block.
 #[must_use]
-pub fn empty() -> Block {
+pub fn empty<Event>() -> Block<Event> {
     Block::new(None)
 }

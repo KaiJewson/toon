@@ -26,10 +26,12 @@ impl<E> Stack<E> {
     }
 }
 
-impl<E, Event> Element<Event> for Stack<E>
+impl<E, Event> Element for Stack<E>
 where
-    for<'a> E: Collection<'a, Event>,
+    for<'a> E: Collection<'a, Event = Event>,
 {
+    type Event = Event;
+
     fn draw(&self, output: &mut dyn Output) {
         for element in self.elements.iter() {
             element.draw(output);
@@ -78,12 +80,12 @@ where
 /// let element = toon::stack((
 ///     element,
 ///     toon::span("A popup message")
-///         .on('q', Event::ClosePopup)
-///         .float((Alignment::Middle, Alignment::Middle)),
+///         .float((Alignment::Middle, Alignment::Middle))
+///         .on('q', Event::ClosePopup),
 /// ));
 /// ```
 #[must_use]
-pub fn stack<E: for<'a> Collection<'a, Event>, Event>(elements: E) -> Stack<E> {
+pub fn stack<E: for<'a> Collection<'a>>(elements: E) -> Stack<E> {
     Stack {
         elements,
         broadcast_inputs: false,

@@ -23,7 +23,7 @@ pub trait Filter<Event> {
     ///
     /// By default this method forwards to `filter_size`, `write_char`, `set_title` and
     /// `set_cursor`.
-    fn draw(&self, element: &dyn Element<Event>, output: &mut dyn Output) {
+    fn draw<E: Element>(&self, element: &E, output: &mut dyn Output) {
         struct DrawFilterOutput<'a, F: ?Sized, Event> {
             inner: &'a mut dyn Output,
             filter: &'a F,
@@ -98,21 +98,21 @@ pub trait Filter<Event> {
     /// Get the inclusive range of widths the element can take up given an optional fixed height.
     ///
     /// By default this calls the element's `width` method.
-    fn width(&self, element: &dyn Element<Event>, height: Option<u16>) -> (u16, u16) {
+    fn width<E: Element>(&self, element: &E, height: Option<u16>) -> (u16, u16) {
         element.width(height)
     }
 
     /// Get the inclusive range of heights the element can take up given an optional fixed width.
     ///
     /// By default this calls the element's `height` method.
-    fn height(&self, element: &dyn Element<Event>, width: Option<u16>) -> (u16, u16) {
+    fn height<E: Element>(&self, element: &E, width: Option<u16>) -> (u16, u16) {
         element.height(width)
     }
 
     /// React to the input and output events if necessary.
     ///
     /// By default this calls `filter_input` and passes the element that.
-    fn handle(&self, element: &dyn Element<Event>, input: Input, events: &mut dyn Events<Event>) {
+    fn handle<E: Element<Event = Event>>(&self, element: &E, input: Input, events: &mut dyn Events<Event>) {
         element.handle(self.filter_input(input), events)
     }
 
@@ -141,7 +141,9 @@ impl<T, F> Filtered<T, F> {
     }
 }
 
-impl<T: Element<Event>, F: Filter<Event>, Event> Element<Event> for Filtered<T, F> {
+impl<T: Element, F: Filter<T::Event>> Element for Filtered<T, F> {
+    type Event = T::Event;
+
     fn draw(&self, output: &mut dyn Output) {
         self.filter.draw(&self.element, output)
     }
@@ -151,7 +153,7 @@ impl<T: Element<Event>, F: Filter<Event>, Event> Element<Event> for Filtered<T, 
     fn height(&self, width: Option<u16>) -> (u16, u16) {
         self.filter.height(&self.element, width)
     }
-    fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
+    fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         self.filter.handle(&self.element, input, events);
     }
 }

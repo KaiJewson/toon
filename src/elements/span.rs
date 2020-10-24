@@ -1,4 +1,5 @@
 use std::fmt::{Display, Write};
+use std::marker::PhantomData;
 
 use unicode_width::UnicodeWidthChar;
 
@@ -7,14 +8,15 @@ use crate::{Element, Events, Input, Output, Style, Vec2};
 /// A span of text, created by the [`span`](fn.span.html) function.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Span<T> {
+pub struct Span<T, Event> {
     /// The text being displayed.
     pub text: T,
     /// The style to display the text in.
     pub style: Style,
+    event: PhantomData<Event>,
 }
 
-impl<T> Span<T> {
+impl<T, Event> Span<T, Event> {
     /// Create a line of text with the default style. Note that use of the [`span`](fn.span.html)
     /// function is preferred.
     #[must_use]
@@ -22,22 +24,25 @@ impl<T> Span<T> {
         Self {
             text,
             style: Style::default(),
+            event: PhantomData,
         }
     }
 }
 
-impl<T> AsRef<Style> for Span<T> {
+impl<T, Event> AsRef<Style> for Span<T, Event> {
     fn as_ref(&self) -> &Style {
         &self.style
     }
 }
-impl<T> AsMut<Style> for Span<T> {
+impl<T, Event> AsMut<Style> for Span<T, Event> {
     fn as_mut(&mut self) -> &mut Style {
         &mut self.style
     }
 }
 
-impl<T: Display, Event> Element<Event> for Span<T> {
+impl<T: Display, Event> Element for Span<T, Event> {
+    type Event = Event;
+
     fn draw(&self, output: &mut dyn Output) {
         let mut pos = 0;
 
@@ -87,9 +92,9 @@ impl<T: Display, Event> Element<Event> for Span<T> {
 /// ```
 /// # use toon::Styled;
 /// // Display `Hello World!` in bold
-/// let element = toon::span("Hello World!").bold();
+/// let element: toon::Span<_, ()> = toon::span("Hello World!").bold();
 /// ```
 #[must_use]
-pub fn span<T: Display>(text: T) -> Span<T> {
+pub fn span<T: Display, Event>(text: T) -> Span<T, Event> {
     Span::new(text)
 }
