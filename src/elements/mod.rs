@@ -5,7 +5,7 @@
 
 use std::fmt::Display;
 
-use crate::{input, Element, Vec2};
+use crate::{input, Element, Vec2, Input};
 
 pub use containers::*;
 pub use filter::*;
@@ -42,31 +42,25 @@ pub trait ElementExt: Element + Sized {
     /// # #[derive(Clone)]
     /// # enum Event { Exit }
     /// // When the 'q' key is pressed or the element is clicked an Exit event will be triggered.
-    /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
+    /// let element = element.on(('q', toon::MouseButton::Left), |_| Event::Exit);
     /// ```
     #[must_use]
-    fn on<I: input::Pattern>(
+    fn on<I: input::Pattern, F: Fn(Input) -> Self::Event>(
         self,
         input_pattern: I,
-        event: Self::Event,
-    ) -> Filtered<Self, On<I, Self::Event>>
-    where
-        Self::Event: Clone,
-    {
+        event: F,
+    ) -> Filtered<Self, On<I, F>> {
         self.filter(On::new(input_pattern, event))
     }
 
     /// Trigger an event when an input occurs, passively; the inner element will still receive
     /// all inputs.
     #[must_use]
-    fn on_passive<I: input::Pattern>(
+    fn on_passive<I: input::Pattern, F: Fn(Input) -> Self::Event>(
         self,
         input_pattern: I,
-        event: Self::Event,
-    ) -> Filtered<Self, On<I, Self::Event>>
-    where
-        Self::Event: Clone,
-    {
+        event: F,
+    ) -> Filtered<Self, On<I, F>> {
         self.filter(On::new(input_pattern, event).passive())
     }
 
@@ -79,7 +73,7 @@ pub trait ElementExt: Element + Sized {
     /// ```
     /// use toon::{Alignment, ElementExt};
     ///
-    /// # let element = toon::span("Hello World!").on((), ());
+    /// # let element = toon::span::<_, ()>("Hello World!");
     /// let element = element.float((Alignment::End, Alignment::Middle));
     /// ```
     #[must_use]

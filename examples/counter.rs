@@ -20,8 +20,8 @@ fn main() {
                     toon::span(format_args!("The number is {}!", counter))
                         .red()
                         .bold()
-                        .on(' ', Event::Increment)
-                        .on('q', Event::Quit),
+                        .on(' ', |_| Event::Increment)
+                        .on('q', |_| Event::Quit),
                 )
                 .await?;
 

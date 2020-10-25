@@ -79,16 +79,19 @@ macro_rules! attribute_setters {
 #[allow(clippy::module_name_repetitions)]
 pub trait Styled: AsRef<Style> + AsMut<Style> + Sized {
     /// Set the foreground color.
+    #[must_use]
     fn foreground(mut self, foreground: impl Into<Color>) -> Self {
         self.as_mut().foreground = foreground.into();
         self
     }
     /// Set the background color.
+    #[must_use]
     fn background(mut self, background: impl Into<Color>) -> Self {
         self.as_mut().background = background.into();
         self
     }
     /// Set the attributes.
+    #[must_use]
     fn attributes(mut self, attributes: Attributes) -> Self {
         self.as_mut().attributes = attributes;
         self
@@ -239,8 +242,8 @@ impl From<Rgb> for Color {
 /// An ANSI value color.
 ///
 /// This can either be an RGB color with each part being 6 values, or it can be a grayscale color
-/// from [0, 26). White and black are treated as both RGB and grayscale colors; there are also
-/// shades of gray treated only as RGB colors and vice versa, because they cannot be fully
+/// in the range of [0, 26). White and black are treated as both RGB and grayscale colors; there are
+/// also shades of gray treated only as RGB colors and vice versa, because they cannot be fully
 /// represented in the other format.
 ///
 /// See [this list of ANSI colors](https://jonasjacek.github.io/colors/) for more information.

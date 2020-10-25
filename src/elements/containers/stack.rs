@@ -80,8 +80,9 @@ where
 /// let element = toon::stack((
 ///     element,
 ///     toon::span("A popup message")
+///         .filter(toon::Border::THIN)
 ///         .float((Alignment::Middle, Alignment::Middle))
-///         .on('q', Event::ClosePopup),
+///         .on('q', |_| Event::ClosePopup),
 /// ));
 /// ```
 #[must_use]

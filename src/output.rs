@@ -64,7 +64,7 @@ pub trait Ext: Output {
     ///
     /// If it overflows the width of the terminal it will be cut off. Control characters will be
     /// ignored.
-    fn write(&mut self, pos: impl Into<Vec2<u16>>, value: &(impl Display + ?Sized), style: Style) {
+    fn write(&mut self, pos: impl Into<Vec2<u16>>, value: impl Display, style: Style) {
         let total_width = self.size().x;
         let mut pos = pos.into();
         let _ = write!(
