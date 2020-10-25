@@ -17,6 +17,7 @@ impl<T> Vec2<T> {
     }
 
     /// Swaps the x and y components.
+    #[must_use]
     pub fn swap(self) -> Self {
         Self {
             x: self.y,
@@ -58,13 +59,26 @@ impl<T> Vec2<T> {
     }
 
     /// Get references to each of the components.
+    #[must_use]
     pub fn as_ref(&self) -> Vec2<&T> {
         Vec2::new(&self.x, &self.y)
     }
 
     /// Get mutable references to each of the components.
+    #[must_use]
     pub fn as_mut(&mut self) -> Vec2<&mut T> {
         Vec2::new(&mut self.x, &mut self.y)
+    }
+}
+
+impl<T> Vec2<Option<T>> {
+    /// Get a vector of the two components if they are both `Some`.
+    #[must_use]
+    pub fn both_some(self) -> Option<Vec2<T>> {
+        Some(Vec2 {
+            x: self.x?,
+            y: self.y?,
+        })
     }
 }
 

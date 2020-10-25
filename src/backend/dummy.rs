@@ -6,6 +6,7 @@ use futures_util::future;
 use unicode_width::UnicodeWidthStr;
 
 use crate::buffer::{Buffer, Grid};
+use crate::output::Ext as _;
 use crate::style::{Color, Intensity, Style};
 use crate::{Cursor, CursorShape, Output, Vec2};
 
@@ -16,6 +17,7 @@ use super::{Backend, Bound, ReadEvents, TerminalEvent, Tty};
 /// This backend doesn't display any output to the screen, but records all operations it receives
 /// and stores a terminal buffer.
 #[derive(Debug)]
+#[non_exhaustive]
 pub struct Dummy {
     /// The operations the dummy backend has received.
     pub operations: Vec<Operation>,
@@ -24,6 +26,8 @@ pub struct Dummy {
     /// If this is empty and the terminal requests an event it will return a never-completing
     /// future.
     pub events: VecDeque<TerminalEvent>,
+    /// The title of the terminal.
+    pub title: String,
     /// The buffer the dummy backend writes to.
     pub buffer: Buffer,
     /// The current position of the cursor.
@@ -49,6 +53,7 @@ impl Dummy {
         Self {
             operations: Vec::new(),
             events: VecDeque::new(),
+            title: String::new(),
             buffer: Buffer::from(Grid::new(size)),
             cursor_pos: Vec2::new(0, 0),
             style: Style::default(),
@@ -122,7 +127,7 @@ impl Bound for Dummy {
 
     fn set_title(&mut self, title: &str) -> Result<(), Self::Error> {
         self.operations.push(Operation::SetTitle(title.to_owned()));
-        self.buffer.title = title.to_owned();
+        self.title = title.to_owned();
         Ok(())
     }
 
@@ -203,12 +208,10 @@ impl Bound for Dummy {
 
     fn write(&mut self, text: &str) -> Result<(), Self::Error> {
         self.operations.push(Operation::Write(text.to_owned()));
-        for c in text.chars() {
-            self.buffer.write_char(self.cursor_pos, c, self.style);
-        }
+        self.buffer.write(self.cursor_pos, text, self.style);
 
         self.cursor_pos.x = min(
-            self.cursor_pos.x + text.width() as u16,
+            self.cursor_pos.x.saturating_add(text.width() as u16),
             self.buffer.grid.width(),
         );
 

@@ -5,25 +5,28 @@
 //! [`filter`](../trait.ElementExt.html#method.filter) method or more specific shortcut methods
 //! such as [`on`](../trait.ElementExt.html#method.on).
 
-use std::fmt::Display;
+use std::fmt;
 use std::marker::PhantomData;
 
 use crate::output::Output;
-use crate::{Cursor, Element, Events, Input, Style, Vec2};
+use crate::{Cursor, Element, Events, Input, KeyPress, Mouse, Style, Vec2};
 
+pub use border::*;
 pub use float::*;
 pub use on::*;
+pub use title::*;
 
+mod border;
 mod float;
 mod on;
+mod title;
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {
     /// Draw the filtered element to the output.
     ///
-    /// By default this method forwards to `filter_size`, `write_char`, `set_title` and
-    /// `set_cursor`.
-    fn draw<E: Element>(&self, element: &E, output: &mut dyn Output) {
+    /// By default this method forwards to `write_char`, `set_title` and `set_cursor`.
+    fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
         struct DrawFilterOutput<'a, F: ?Sized, Event> {
             inner: &'a mut dyn Output,
             filter: &'a F,
@@ -35,9 +38,6 @@ pub trait Filter<Event> {
             }
             fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
                 self.filter.write_char(self.inner, pos, c, style);
-            }
-            fn set_title(&mut self, title: &dyn Display) {
-                self.filter.set_title(self.inner, title);
             }
             fn set_cursor(&mut self, cursor: Option<Cursor>) {
                 self.filter.set_cursor(self.inner, cursor);
@@ -73,13 +73,6 @@ pub trait Filter<Event> {
         style
     }
 
-    /// Set the filtered title of the output.
-    ///
-    /// By default this sets the title of the output to the given title.
-    fn set_title(&self, base: &mut dyn Output, title: &dyn Display) {
-        base.set_title(title)
-    }
-
     /// Set the filtered cursor of the output.
     ///
     /// By default this filters the cursor with `filter_cursor` and then sets it to the output's
@@ -95,31 +88,65 @@ pub trait Filter<Event> {
         cursor
     }
 
+    /// Get filtered title of the element.
+    ///
+    /// By default this sets the title of the output to the given title.
+    ///
+    /// # Errors
+    ///
+    /// This function should always propagate errors from the writer, and returning errors not
+    /// created by the writer may result in panics.
+    fn title<E: Element>(&self, element: E, title: &mut dyn fmt::Write) -> fmt::Result {
+        element.title(title)
+    }
+
     /// Get the inclusive range of widths the element can take up given an optional fixed height.
     ///
     /// By default this calls the element's `width` method.
-    fn width<E: Element>(&self, element: &E, height: Option<u16>) -> (u16, u16) {
+    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
         element.width(height)
     }
 
     /// Get the inclusive range of heights the element can take up given an optional fixed width.
     ///
     /// By default this calls the element's `height` method.
-    fn height<E: Element>(&self, element: &E, width: Option<u16>) -> (u16, u16) {
+    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
         element.height(width)
     }
 
     /// React to the input and output events if necessary.
     ///
     /// By default this calls `filter_input` and passes the element that.
-    fn handle<E: Element<Event = Event>>(&self, element: &E, input: Input, events: &mut dyn Events<Event>) {
+    fn handle<E: Element<Event = Event>>(
+        &self,
+        element: E,
+        input: Input,
+        events: &mut dyn Events<Event>,
+    ) {
         element.handle(self.filter_input(input), events)
     }
 
     /// Filter inputs given to the wrapped element.
     ///
-    /// By default this returns the input unchanged.
+    /// By default this forwards to `filter_key_press` and `filter_mouse`.
     fn filter_input(&self, input: Input) -> Input {
+        match input {
+            Input::Key(key) => Input::Key(self.filter_key_press(key)),
+            Input::Mouse(mouse) => Input::Mouse(self.filter_mouse(mouse)),
+        }
+    }
+
+    /// Filter the key input to the element.
+    ///
+    /// By default this returns the input unchanged.
+    fn filter_key_press(&self, input: KeyPress) -> KeyPress {
+        input
+    }
+
+    /// Filter the mouse input to the element.
+    ///
+    /// By default this returns the input unchanged.
+    fn filter_mouse(&self, input: Mouse) -> Mouse {
         input
     }
 }
@@ -147,6 +174,9 @@ impl<T: Element, F: Filter<T::Event>> Element for Filtered<T, F> {
     fn draw(&self, output: &mut dyn Output) {
         self.filter.draw(&self.element, output)
     }
+    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+        self.filter.title(&self.element, title)
+    }
     fn width(&self, height: Option<u16>) -> (u16, u16) {
         self.filter.width(&self.element, height)
     }
@@ -156,4 +186,15 @@ impl<T: Element, F: Filter<T::Event>> Element for Filtered<T, F> {
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         self.filter.handle(&self.element, input, events);
     }
+}
+
+/// Alignment to the start, middle or end.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Alignment {
+    /// Aligned to the start of the container.
+    Start,
+    /// Aligned to the middle of the container.
+    Middle,
+    /// Aligned to the end of the container.
+    End,
 }

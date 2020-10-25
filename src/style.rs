@@ -12,6 +12,15 @@ pub struct Style {
 }
 
 impl Style {
+    /// Get the default style.
+    ///
+    /// This is identical to the implementation of `Default`, but it can be called in `const`
+    /// contexts.
+    #[must_use]
+    pub const fn default() -> Self {
+        Self::new(Color::Default, Color::Default, Attributes::new())
+    }
+
     /// Create a style.
     #[must_use]
     pub const fn new(foreground: Color, background: Color, attributes: Attributes) -> Self {

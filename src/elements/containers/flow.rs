@@ -243,7 +243,11 @@ where
             element.draw(
                 &mut output
                     .area(self.axis.vec(offset, 0), size)
-                    .focused(self.focused == Some(i)),
+                    .on_set_cursor(|output, cursor| {
+                        if self.focused == Some(i) {
+                            output.set_cursor(cursor);
+                        }
+                    }),
             );
 
             offset += element_main_axis_size;

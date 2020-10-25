@@ -15,7 +15,10 @@ impl<Event> Block<Event> {
     /// [`fill`](fn.fill.html) functions is preferred.
     #[must_use]
     pub const fn new(color: Option<Color>) -> Self {
-        Self { color, event: PhantomData }
+        Self {
+            color,
+            event: PhantomData,
+        }
     }
 }
 

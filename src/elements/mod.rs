@@ -3,6 +3,8 @@
 //! This module aims to cover most use cases of elements so you don't have to implement
 //! [`Element`](../trait.Element.html) yourself.
 
+use std::fmt::Display;
+
 use crate::{input, Element, Vec2};
 
 pub use containers::*;
@@ -43,7 +45,11 @@ pub trait ElementExt: Element + Sized {
     /// let element = element.on(('q', toon::MouseButton::Left), Event::Exit);
     /// ```
     #[must_use]
-    fn on<I: input::Pattern>(self, input_pattern: I, event: Self::Event) -> Filtered<Self, On<I, Self::Event>>
+    fn on<I: input::Pattern>(
+        self,
+        input_pattern: I,
+        event: Self::Event,
+    ) -> Filtered<Self, On<I, Self::Event>>
     where
         Self::Event: Clone,
     {
@@ -79,6 +85,12 @@ pub trait ElementExt: Element + Sized {
     #[must_use]
     fn float(self, align: impl Into<Vec2<Alignment>>) -> Filtered<Self, Float> {
         self.filter(Float::new(align))
+    }
+
+    /// Set the title of the element.
+    #[must_use]
+    fn title<T: Display>(self, title: T) -> Filtered<Self, Title<T>> {
+        self.filter(Title::new(title))
     }
 
     /// Erase the element's type by boxing it.

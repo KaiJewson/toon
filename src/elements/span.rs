@@ -3,7 +3,10 @@ use std::marker::PhantomData;
 
 use unicode_width::UnicodeWidthChar;
 
-use crate::{Element, Events, Input, Output, Style, Vec2};
+use crate::{
+    output::{Ext as _, Output},
+    Element, Events, Input, Style,
+};
 
 /// A span of text, created by the [`span`](fn.span.html) function.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
@@ -44,29 +47,16 @@ impl<T: Display, Event> Element for Span<T, Event> {
     type Event = Event;
 
     fn draw(&self, output: &mut dyn Output) {
-        let mut pos = 0;
-
-        write!(
-            crate::util::WriteCharsFn(|c| {
-                let width = match c.width() {
-                    Some(width) => width,
-                    None => return,
-                } as u16;
-
-                output.write_char(Vec2::new(pos, 0), c, self.style);
-
-                pos += width;
-            }),
-            "{}",
-            self.text
-        )
-        .expect("formatting failed");
+        output.write((0, 0), &self.text, self.style);
     }
     fn width(&self, _height: Option<u16>) -> (u16, u16) {
         let mut width = 0;
 
         write!(
-            crate::util::WriteCharsFn(|c| width += c.width().unwrap_or(0) as u16),
+            crate::util::WriteCharsFn(|c| {
+                width += c.width().unwrap_or(0) as u16;
+                Ok(())
+            }),
             "{}",
             self.text
         )

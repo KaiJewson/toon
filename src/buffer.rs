@@ -1,7 +1,6 @@
 //! Data structures representing terminals.
 
 use std::cmp::Ordering;
-use std::fmt::Display;
 use std::iter;
 
 use smartstring::{LazyCompact, SmartString};
@@ -12,8 +11,6 @@ use crate::{Cursor, Output, Style, Vec2};
 /// A terminal state.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Buffer {
-    /// The title of the terminal.
-    pub title: String,
     /// The grid of characters on the terminal.
     pub grid: Grid,
     /// The cursor on the terminal.
@@ -22,10 +19,7 @@ pub struct Buffer {
 
 impl From<Grid> for Buffer {
     fn from(grid: Grid) -> Self {
-        Self {
-            grid,
-            ..Self::default()
-        }
+        Self { grid, cursor: None }
     }
 }
 
@@ -35,9 +29,6 @@ impl Output for Buffer {
     }
     fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
         self.grid.write_char(pos, c, style)
-    }
-    fn set_title(&mut self, title: &dyn Display) {
-        self.title = title.to_string();
     }
     fn set_cursor(&mut self, cursor: Option<Cursor>) {
         self.cursor = cursor;
@@ -55,7 +46,9 @@ pub struct Grid {
 impl Grid {
     /// Create a new grid with all empty cells.
     #[must_use]
-    pub fn new(size: Vec2<u16>) -> Self {
+    pub fn new(size: impl Into<Vec2<u16>>) -> Self {
+        let size = size.into();
+
         let mut this = Self::default();
         this.resize_width(size.x);
         this.resize_height(size.y);
@@ -136,8 +129,6 @@ impl Output for Grid {
             line.write_char(Vec2::new(pos.x, 0), c, style);
         }
     }
-
-    fn set_title(&mut self, _title: &dyn Display) {}
     fn set_cursor(&mut self, _cursor: Option<Cursor>) {}
 }
 
@@ -303,7 +294,6 @@ impl Output for Line {
         };
     }
 
-    fn set_title(&mut self, _title: &dyn Display) {}
     fn set_cursor(&mut self, _cursor: Option<Cursor>) {}
 }
 
@@ -431,11 +421,13 @@ fn test_line() {
 #[cfg(test)]
 #[test]
 fn test_resize_anchor() {
-    let mut grid = Grid::new(Vec2::new(1, 3));
+    use crate::output::Ext as _;
 
-    grid.write_char(Vec2::new(0, 0), '0', Style::default());
-    grid.write_char(Vec2::new(0, 1), '1', Style::default());
-    grid.write_char(Vec2::new(0, 2), '2', Style::default());
+    let mut grid = Grid::new((1, 3));
+
+    grid.write((0, 0), "0", Style::default());
+    grid.write((0, 1), "1", Style::default());
+    grid.write((0, 2), "2", Style::default());
 
     grid.resize_height_with_anchor(2, 2);
 

@@ -1,7 +1,7 @@
 use crate::output::{Ext as _, Output};
-use crate::{Element, Vec2};
+use crate::{Element, Events, Input, Mouse, Vec2};
 
-use super::Filter;
+use super::{Alignment, Filter};
 
 /// A filter that makes an element float, typically used through the
 /// [`float`](../trait.ElementExt.html#method.float) method.
@@ -20,34 +20,59 @@ impl Float {
             align: align.into(),
         }
     }
-}
 
-/// Alignment to the start, middle or end.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum Alignment {
-    /// Aligned to the start of the container.
-    Start,
-    /// Aligned to the middle of the container.
-    Middle,
-    /// Aligned to the end of the container.
-    End,
+    /// Get the offset and size of the element.
+    fn calculate_layout(
+        self,
+        element: impl Element,
+        output_size: Vec2<u16>,
+    ) -> (Vec2<u16>, Vec2<u16>) {
+        let width = element.width(None).0;
+        let height = element.height(Some(width)).0;
+        let size = Vec2::min(Vec2::new(width, height), output_size);
+
+        let offset = self
+            .align
+            .zip(size)
+            .zip(output_size)
+            .map(|((align, size), total_size)| match align {
+                Alignment::Start => 0,
+                Alignment::Middle => (total_size / 2).saturating_sub(size / 2),
+                Alignment::End => total_size.saturating_sub(size),
+            });
+
+        (offset, size)
+    }
 }
 
 impl<Event> Filter<Event> for Float {
-    fn draw<E: Element>(&self, element: &E, output: &mut dyn Output) {
-        let width = element.width(None).0;
-        let height = element.height(Some(width)).0;
-        let size = Vec2::min(Vec2::new(width, height), output.size());
-
-        let offset =
-            self.align.zip(size).zip(output.size()).map(
-                |((align, size), total_size)| match align {
-                    Alignment::Start => 0,
-                    Alignment::Middle => total_size / 2 - size / 2,
-                    Alignment::End => total_size - size,
-                },
-            );
+    fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
+        let (offset, size) = self.calculate_layout(&element, output.size());
 
         element.draw(&mut output.area(offset, size));
+    }
+    fn handle<E: Element<Event = Event>>(
+        &self,
+        element: E,
+        input: Input,
+        events: &mut dyn Events<Event>,
+    ) {
+        let input = match input {
+            Input::Key(key) => Some(Input::Key(key)),
+            Input::Mouse(mouse) => {
+                let (offset, size) = self.calculate_layout(&element, mouse.size);
+
+                mouse
+                    .at
+                    .zip(offset)
+                    .map(|(at, offset)| at.checked_sub(offset))
+                    .both_some()
+                    .filter(|&at| at.x < size.x && at.y < size.y)
+                    .map(|at| Input::Mouse(Mouse { at, size, ..mouse }))
+            }
+        };
+        if let Some(input) = input {
+            element.handle(input, events);
+        }
     }
 }

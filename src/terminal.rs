@@ -24,6 +24,8 @@ static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 pub struct Terminal<B: Backend> {
     /// Only `None` during destruction of the type.
     backend: Option<B::Bound>,
+    /// The previous title of the terminal.
+    title: String,
     /// Holds the previous frame to diff against.
     old_buffer: Buffer,
     /// Is always a clear buffer, kept around to avoid cloning the buffer each draw.
@@ -77,6 +79,7 @@ impl<B: Backend> Terminal<B> {
 
         Ok(Self {
             backend: Some(backend),
+            title: String::new(),
             old_buffer: buffer.clone(),
             buffer,
             cursor_pos: Vec2::default(),
@@ -94,10 +97,26 @@ impl<B: Backend> Terminal<B> {
     /// # Errors
     ///
     /// Fails when drawing to the backend fails.
-    pub async fn draw<E: Element>(
-        &mut self,
-        element: E,
-    ) -> Result<Vec<E::Event>, Error<B::Error>> {
+    pub async fn draw<E: Element>(&mut self, element: E) -> Result<Vec<E::Event>, Error<B::Error>> {
+        // Update title
+        let mut old_title_bytes = self.title.bytes();
+        let title_is_same = element
+            .title(&mut crate::util::WriteFn(|s| {
+                for byte in s.bytes() {
+                    if old_title_bytes.next() != Some(byte) {
+                        return Err(fmt::Error);
+                    }
+                }
+                Ok(())
+            }))
+            .is_ok()
+            && old_title_bytes.len() == 0;
+        if !title_is_same {
+            self.title.clear();
+            element.title(&mut self.title).unwrap();
+            self.backend.as_mut().unwrap().set_title(&self.title)?;
+        }
+
         loop {
             element.draw(&mut self.buffer);
 
@@ -146,10 +165,6 @@ impl<B: Backend> Terminal<B> {
     /// Diffs `old_buffer` and `new_buffer` and draws them to the backend.
     fn diff(&mut self) -> Result<(), Error<B::Error>> {
         let backend = self.backend.as_mut().unwrap();
-
-        if self.old_buffer.title != self.buffer.title {
-            backend.set_title(&self.buffer.title)?;
-        }
 
         for (y, (old_line, new_line)) in self
             .old_buffer
@@ -371,21 +386,12 @@ impl<'a> Read for &'a Captured {
 #[test]
 fn test_diff_grid() {
     use crate::backend::Operation;
+    use crate::output::Ext as _;
     use crate::{Attributes, Intensity};
 
-    use unicode_width::UnicodeWidthChar;
-
-    fn write_at(grid: &mut Grid, at: (u16, u16), text: &str, style: Style) {
-        let mut pos = at.0;
-        for c in text.chars() {
-            grid.write_char(Vec2::new(pos, at.1), c, style);
-            pos += c.width().unwrap_or(0) as u16;
-        }
-    }
-
     let mut old_grid = Grid::new(Vec2::new(16, 8));
-    write_at(&mut old_grid, (2, 5), "Hello World!", Style::default());
-    write_at(&mut old_grid, (3, 6), "😃", Style::default());
+    old_grid.write((2, 5), "Hello World!", Style::default());
+    old_grid.write((3, 6), "😃", Style::default());
     let old_grid = old_grid;
 
     // old grid:
@@ -412,10 +418,10 @@ fn test_diff_grid() {
         },
     );
 
-    write_at(&mut new_grid, (15, 2), "abcd", style);
+    new_grid.write((15, 2), "abcd", style);
     style.foreground = Color::Green;
-    write_at(&mut new_grid, (1, 5), "foo", style);
-    write_at(&mut new_grid, (4, 6), "😃", style);
+    new_grid.write((1, 5), "foo", style);
+    new_grid.write((4, 6), "😃", style);
 
     let new_grid = new_grid;
 

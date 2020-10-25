@@ -18,6 +18,7 @@
 //! # };
 //! ```
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
+#![forbid(unsafe_code)]
 #![warn(
     clippy::pedantic,
     rust_2018_idioms,
@@ -31,7 +32,16 @@
     clippy::cast_possible_truncation,
     clippy::non_ascii_literal
 )]
+//For checking before a release
+// #![deny(
+//     clippy::dbg_macro,
+//     clippy::print_stdout,
+//     clippy::todo,
+//     clippy::unimplemented,
+//     clippy::use_debug
+// )]
 
+use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -73,16 +83,34 @@ pub trait Element {
     type Event;
 
     /// Draw the element to the output.
+    ///
+    /// Elements shouldn't draw to every part of the output if they don't have to. Containers like
+    /// [`Stack`](elements/containers/struct.Stack.html) allow users to set whatever content they
+    /// like for the background.
     fn draw(&self, output: &mut dyn Output);
 
     /// Get the inclusive range of widths the element can take up given an optional fixed height.
+    ///
+    /// The second value must be >= the first, otherwise panics may occur.
     fn width(&self, height: Option<u16>) -> (u16, u16);
 
     /// Get the inclusive range of heights the element can take up given an optional fixed width.
+    ///
+    /// The second value must be >= the first, otherwise panics may occur.
     fn height(&self, width: Option<u16>) -> (u16, u16);
 
     /// React to the input and output events if necessary.
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>);
+
+    /// Write the title of the element to the writer.
+    ///
+    /// # Errors
+    ///
+    /// This function should always propagate errors from the writer, and returning errors not
+    /// created by the writer may result in panics.
+    fn title(&self, _title: &mut dyn fmt::Write) -> fmt::Result {
+        Ok(())
+    }
 }
 
 impl<'a, E: Element + ?Sized> Element for &'a E {
@@ -99,6 +127,9 @@ impl<'a, E: Element + ?Sized> Element for &'a E {
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         (*self).handle(input, events)
+    }
+    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+        (*self).title(title)
     }
 }
 
@@ -119,6 +150,9 @@ macro_rules! implement_element_forwarding {
                 }
                 fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
                     (**self).handle(input, events)
+                }
+                fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+                    (**self).title(title)
                 }
             }
         )*
