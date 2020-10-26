@@ -16,9 +16,9 @@ state, and the cycle repeats.
 
 ```
          Drawing                Input
-State ------------> Elements ----------> Events
-  ^                                        V
-  \----------------------------------------/
+State ────────────→ Elements ──────────→ Events
+  ↑                                        │
+  ╰────────────────────────────────────────╯
 ```
 
 As such, your UI is a simple pure function of your state. This helps eliminate a whole class of
@@ -26,16 +26,15 @@ inconsistency bugs; given a certain state, your UI will look the exact same way,
 event system also allows you to easily trace each and every modification to your state, which
 can be very useful.
 
-With this model in mind, you can look through the
-[examples](https://github.com/KaiJewson/toon/tree/master/examples). See also the
-[comparison](https://github.com/KaiJewson/toon/blob/master/COMPARISON.md) to compare it with
-the other big TUI libraries, [tui](https://github.com/fdehau/tui-rs) and
-[Cursive](https://github.com/gyscos/cursive).
+See the [comparison](https://github.com/KaiJewson/toon/blob/master/COMPARISON.md) to compare it
+with the other big TUI libraries, [Cursive](https://github.com/gyscos/cursive) and
+[tui](https://github.com/fdehau/tui-rs).
 
-## Examples
+## Example
+
+See the [examples](https://github.com/KaiJewson/toon/tree/master/examples) folder for more.
 
 Display `Hello World!` on the terminal using the Crossterm backend:
-
 ```rust
 use toon::{Crossterm, Terminal, ElementExt};
 
@@ -51,7 +50,8 @@ terminal.cleanup()
 ## Features
 
 Toon offers the following features, none of which are enabled by default:
-- `crossterm`: Enable the [Crossterm](backend/struct.Crossterm.html) backend.
+- `crossterm`: Enable the
+[Crossterm](https://docs.rs/toon/0.1/toon/backend/struct.Crossterm.html) backend.
 - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
 implements `Element`, `Output` and `Collection` for `Either`.
 

@@ -11,12 +11,12 @@ pub trait Events<Event>: sealed::Sealed {
     fn add(&mut self, event: Event);
 }
 
-impl<'a, T: Events<Event>, Event> Events<Event> for &'a mut T {
+impl<'a, T: Events<Event> + ?Sized, Event> Events<Event> for &'a mut T {
     fn add(&mut self, event: Event) {
         (*self).add(event);
     }
 }
-impl<'a, T> sealed::Sealed for &'a mut T {}
+impl<'a, T: ?Sized> sealed::Sealed for &'a mut T {}
 
 /// Extension methods for event collectors.
 pub trait Ext<Event>: Events<Event> + Sized {

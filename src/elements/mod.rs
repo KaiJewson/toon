@@ -12,12 +12,14 @@ pub use filter::*;
 
 pub use block::*;
 pub use span::*;
+pub use map_event::*;
 
 pub mod containers;
 pub mod filter;
 
 mod block;
 mod span;
+mod map_event;
 
 /// An extension trait for elements providing useful methods.
 pub trait ElementExt: Element + Sized {
@@ -85,6 +87,15 @@ pub trait ElementExt: Element + Sized {
     #[must_use]
     fn title<T: Display>(self, title: T) -> Filtered<Self, Title<T>> {
         self.filter(Title::new(title))
+    }
+
+    /// Map the type of event produced by the element.
+    #[must_use]
+    fn map_event<Event2, F: Fn(Self::Event) -> Event2>(self, f: F) -> MapEvent<Self, F> {
+        MapEvent {
+            inner: self,
+            f,
+        }
     }
 
     /// Erase the element's type by boxing it.
