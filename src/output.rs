@@ -51,6 +51,28 @@ impl<'a, O: Output + ?Sized> Output for &'a mut O {
     }
 }
 
+#[cfg(feature = "either")]
+impl<L: Output, R: Output> Output for either_crate::Either<L, R> {
+    fn size(&self) -> Vec2<u16> {
+        match self {
+            Self::Left(l) => l.size(),
+            Self::Right(r) => r.size(),
+        }
+    }
+    fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
+        match self {
+            Self::Left(l) => l.write_char(pos, c, style),
+            Self::Right(r) => r.write_char(pos, c, style),
+        }
+    }
+    fn set_cursor(&mut self, cursor: Option<Cursor>) {
+        match self {
+            Self::Left(l) => l.set_cursor(cursor),
+            Self::Right(r) => r.set_cursor(cursor),
+        }
+    }
+}
+
 /// Extension methods for outputs.
 ///
 /// Due to its generic name, it is not recommended to import this trait normally. Instead you

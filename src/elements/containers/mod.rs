@@ -3,6 +3,9 @@
 use std::iter;
 use std::slice;
 
+#[cfg(feature = "either")]
+use either_crate::Either;
+
 use crate::Element;
 use crate::Vec2;
 
@@ -118,6 +121,29 @@ impl_collection_for_tuples! {
     (A, B, C, D, E, F, G, H, I),
     (A, B, C, D, E, F, G, H, I, J),
     (A, B, C, D, E, F, G, H, I, J, K),
+}
+
+#[cfg(feature = "either")]
+impl<'a, L, R> Collection<'a> for Either<L, R>
+where
+    L: Collection<'a>,
+    R: Collection<'a, Event = <L as Collection<'a>>::Event>,
+{
+    type Event = <L as Collection<'a>>::Event;
+    type Iter = Either<<L as Collection<'a>>::Iter, <R as Collection<'a>>::Iter>;
+
+    fn iter(&'a self) -> Self::Iter {
+        match self {
+            Self::Left(l) => Either::Left(l.iter()),
+            Self::Right(r) => Either::Right(r.iter()),
+        }
+    }
+    fn len(&'a self) -> usize {
+        match self {
+            Self::Left(l) => l.len(),
+            Self::Right(r) => r.len(),
+        }
+    }
 }
 
 /// An axis: X or Y.

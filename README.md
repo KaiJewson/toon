@@ -6,11 +6,31 @@
 
 A simple, declarative, and modular TUI library.
 
-Get started by reading the
-[tutorial](https://github.com/KaiJewson/toon/blob/master/TUTORIAL.md) and looking through the
+In Toon, every application starts out with some **state**. Then, using your state you create an
+**element** (the [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.trait) trait). You pass
+your element to Toon using
+[`Terminal::draw`](https://docs.rs/toon/0.1/toon/struct.Terminal.html#method.draw) and it
+renders it to the screen, before waiting for user input. When that occurs, Toon uses your
+element to translate it into some number of **events**, which are then used to modify your
+state, and the cycle repeats.
+
+```
+         Drawing                Input
+State ------------> Elements ----------> Events
+  ^                                        V
+  \----------------------------------------/
+```
+
+As such, your UI is a simple pure function of your state. This helps eliminate a whole class of
+inconsistency bugs; given a certain state, your UI will look the exact same way, _always_. The
+event system also allows you to easily trace each and every modification to your state, which
+can be very useful.
+
+With this model in mind, you can look through the
 [examples](https://github.com/KaiJewson/toon/tree/master/examples). See also the
 [comparison](https://github.com/KaiJewson/toon/blob/master/COMPARISON.md) to compare it with
-[tui](https://github.com/fdehau/tui-rs) and [Cursive](https://github.com/gyscos/cursive).
+the other big TUI libraries, [tui](https://github.com/fdehau/tui-rs) and
+[Cursive](https://github.com/gyscos/cursive).
 
 ## Examples
 
@@ -27,5 +47,12 @@ terminal
 
 terminal.cleanup()
 ```
+
+## Features
+
+Toon offers the following features, none of which are enabled by default:
+- `crossterm`: Enable the [Crossterm](backend/struct.Crossterm.html) backend.
+- `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
+implements `Element`, `Output` and `Collection` for `Either`.
 
 License: MIT OR Apache-2.0

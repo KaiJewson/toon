@@ -5,7 +5,7 @@
 
 use std::fmt::Display;
 
-use crate::{input, Element, Vec2, Input};
+use crate::{input, Element, Input, Vec2};
 
 pub use containers::*;
 pub use filter::*;

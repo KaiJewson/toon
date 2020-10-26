@@ -12,7 +12,8 @@ use crate::{Color, Element, Input, Intensity, Output, Style, Vec2};
 
 static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 
-/// A terminal which can draw elements to a backend.
+/// A terminal which can draw [elements](trait.Element.html) to a
+/// [backend](backend/trait.Backend.html).
 ///
 /// For backends that aren't dummies, only one terminal may exist at once; attempting to
 /// create more than one at once will panic.
@@ -337,7 +338,6 @@ impl<B> From<B> for Error<B> {
         Self::Backend(e)
     }
 }
-
 impl<B: Display> Display for Error<B> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -346,7 +346,6 @@ impl<B: Display> Display for Error<B> {
         }
     }
 }
-
 impl<B: StdError + 'static> StdError for Error<B> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {

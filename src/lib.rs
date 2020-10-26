@@ -4,16 +4,35 @@
 //!
 //! A simple, declarative, and modular TUI library.
 //!
-//! Get started by reading the
-//! [tutorial](https://github.com/KaiJewson/toon/blob/master/TUTORIAL.md) and looking through the
-//! [examples](https://github.com/KaiJewson/toon/tree/master/examples). See also the
-//! [comparison](https://github.com/KaiJewson/toon/blob/master/COMPARISON.md) to compare it with
-//! [tui](https://github.com/fdehau/tui-rs) and [Cursive](https://github.com/gyscos/cursive).
+//! In Toon, every application starts out with some **state**. Then, using your state you create an
+//! **element** (the [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.trait) trait). You pass
+//! your element to Toon using
+//! [`Terminal::draw`](https://docs.rs/toon/0.1/toon/struct.Terminal.html#method.draw) and it
+//! renders it to the screen, before waiting for user input. When that occurs, Toon uses your
+//! element to translate it into some number of **events**, which are then used to modify your
+//! state, and the cycle repeats.
 //!
-//! # Examples
+//! ```text
+//!          Drawing                Input
+//! State ────────────→ Elements ──────────→ Events
+//!   ↑                                        │
+//!   ╰────────────────────────────────────────╯
+//! ```
+//!
+//! As such, your UI is a simple pure function of your state. This helps eliminate a whole class of
+//! inconsistency bugs; given a certain state, your UI will look the exact same way, _always_. The
+//! event system also allows you to easily trace each and every modification to your state, which
+//! can be very useful.
+//!
+//! See the [comparison](https://github.com/KaiJewson/toon/blob/master/COMPARISON.md) to compare it
+//! with the other big TUI libraries, [Cursive](https://github.com/gyscos/cursive) and
+//! [tui](https://github.com/fdehau/tui-rs).
+//!
+//! # Example
+//!
+//! See the [examples](https://github.com/KaiJewson/toon/tree/master/examples) folder for more.
 //!
 //! Display `Hello World!` on the terminal using the Crossterm backend:
-//!
 //! ```
 //! # async {
 //! use toon::{Crossterm, Terminal, ElementExt};
@@ -27,6 +46,14 @@
 //! terminal.cleanup()
 //! # };
 //! ```
+//!
+//! # Features
+//!
+//! Toon offers the following features, none of which are enabled by default:
+//! - `crossterm`: Enable the
+//! [Crossterm](https://docs.rs/toon/0.1/toon/backend/struct.Crossterm.html) backend.
+//! - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
+//! implements `Element`, `Output` and `Collection` for `Either`.
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
 #![forbid(unsafe_code)]
 #![warn(
@@ -55,7 +82,12 @@ use std::fmt;
 use std::rc::Rc;
 use std::sync::Arc;
 
+#[cfg(feature = "either")]
+pub use either_crate as either;
 pub use smartstring;
+
+#[cfg(feature = "either")]
+use either_crate::Either;
 
 #[cfg(feature = "crossterm")]
 #[doc(no_inline)]
@@ -82,7 +114,7 @@ mod terminal;
 mod util;
 mod vec2;
 
-/// An element on the screen.
+/// A composable part of the UI.
 ///
 /// Elements are cheap, immutable, borrowed and short-lived. They usually implement `Copy`.
 ///
@@ -169,6 +201,42 @@ macro_rules! implement_element_forwarding {
     }
 }
 implement_element_forwarding!(Box, Arc, Rc);
+
+#[cfg(feature = "either")]
+impl<L: Element, R: Element<Event = L::Event>> Element for Either<L, R> {
+    type Event = L::Event;
+
+    fn draw(&self, output: &mut dyn Output) {
+        match self {
+            Self::Left(l) => l.draw(output),
+            Self::Right(r) => r.draw(output),
+        }
+    }
+    fn width(&self, height: Option<u16>) -> (u16, u16) {
+        match self {
+            Self::Left(l) => l.width(height),
+            Self::Right(r) => r.width(height),
+        }
+    }
+    fn height(&self, width: Option<u16>) -> (u16, u16) {
+        match self {
+            Self::Left(l) => l.height(width),
+            Self::Right(r) => r.height(width),
+        }
+    }
+    fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
+        match self {
+            Self::Left(l) => l.handle(input, events),
+            Self::Right(r) => r.handle(input, events),
+        }
+    }
+    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+        match self {
+            Self::Left(l) => l.title(title),
+            Self::Right(r) => r.title(title),
+        }
+    }
+}
 
 /// A terminal cursor.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]

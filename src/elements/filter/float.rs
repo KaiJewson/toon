@@ -51,6 +51,12 @@ impl<Event> Filter<Event> for Float {
 
         element.draw(&mut output.area(offset, size));
     }
+    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
+        (element.width(height).0, u16::MAX)
+    }
+    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
+        (element.height(width).0, u16::MAX)
+    }
     fn handle<E: Element<Event = Event>>(
         &self,
         element: E,
