@@ -1,5 +1,7 @@
-use crate::{Element, Output, Input};
+use std::fmt;
+
 use crate::events::{Events, Ext as _};
+use crate::{Element, Input, Output};
 
 /// An element that maps the event type of an element, created by the
 /// [`map_event`](trait.ElementExt.html#method.map_event) function.
@@ -28,5 +30,8 @@ impl<T: Element, F: Fn(T::Event) -> Event2, Event2> Element for MapEvent<T, F> {
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         self.inner.handle(input, &mut events.map(&self.f));
+    }
+    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+        self.inner.title(title)
     }
 }

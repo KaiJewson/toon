@@ -14,11 +14,13 @@ use crate::{Cursor, Element, Events, Input, KeyPress, Mouse, Style, Vec2};
 pub use border::*;
 pub use float::*;
 pub use on::*;
+pub use size::*;
 pub use title::*;
 
 mod border;
 mod float;
 mod on;
+mod size;
 mod title;
 
 /// A wrapper around a single element that modifies it.

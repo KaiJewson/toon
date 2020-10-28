@@ -10,11 +10,11 @@ use crossterm_crate as crossterm;
 use futures_util::future::{self, FutureExt};
 use futures_util::stream::{self, StreamExt};
 
-use crate::input::{Input, Key, KeyPress, Modifiers, Mouse, MouseButton, MouseKind};
+use crate::input::{Key, KeyPress, Modifiers, MouseButton};
 use crate::style::{Color, Intensity, Rgb};
 use crate::{CursorShape, Vec2};
 
-use super::{Backend, ReadEvents, TerminalEvent, Tty};
+use super::{Backend, ReadEvents, TerminalEvent, TerminalMouse, TerminalMouseKind, Tty};
 
 /// Crossterm backend.
 ///
@@ -220,7 +220,7 @@ fn to_crossterm_color(color: Color) -> CColor {
 
 fn from_crossterm_event(event: Event) -> TerminalEvent {
     match event {
-        Event::Key(key) => TerminalEvent::Input(Input::Key(KeyPress {
+        Event::Key(key) => TerminalEvent::Key(KeyPress {
             key: match key.code {
                 KeyCode::Backspace => Key::Backspace,
                 KeyCode::Enter => Key::Char('\n'),
@@ -247,28 +247,26 @@ fn from_crossterm_event(event: Event) -> TerminalEvent {
                     || matches!(key.code, KeyCode::Char(c) if c.is_uppercase());
                 modifiers
             },
-        })),
-        Event::Mouse(mouse) => TerminalEvent::Input(Input::Mouse({
+        }),
+        Event::Mouse(mouse) => TerminalEvent::Mouse({
             let (kind, x, y, modifiers) = match mouse {
                 MouseEvent::Down(button, x, y, modifiers) => (
-                    MouseKind::Press(from_crossterm_mouse_button(button)),
+                    TerminalMouseKind::Press(from_crossterm_mouse_button(button)),
                     x,
                     y,
                     modifiers,
                 ),
-                MouseEvent::Up(_, x, y, m) => (MouseKind::Release, x, y, m),
-                MouseEvent::Drag(_, x, y, m) => (MouseKind::Hold, x, y, m),
-                MouseEvent::ScrollDown(x, y, m) => (MouseKind::ScrollDown, x, y, m),
-                MouseEvent::ScrollUp(x, y, m) => (MouseKind::ScrollUp, x, y, m),
+                MouseEvent::Up(_, x, y, m) => (TerminalMouseKind::Release, x, y, m),
+                MouseEvent::Drag(_, x, y, m) => (TerminalMouseKind::Move, x, y, m),
+                MouseEvent::ScrollDown(x, y, m) => (TerminalMouseKind::ScrollDown, x, y, m),
+                MouseEvent::ScrollUp(x, y, m) => (TerminalMouseKind::ScrollUp, x, y, m),
             };
-            Mouse {
+            TerminalMouse {
                 kind,
                 at: Vec2 { x, y },
-                // Anything can go here
-                size: Vec2::default(),
                 modifiers: from_crossterm_modifiers(modifiers),
             }
-        })),
+        }),
         Event::Resize(x, y) => TerminalEvent::Resize(Vec2 { x, y }),
     }
 }

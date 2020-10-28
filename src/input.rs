@@ -1,5 +1,7 @@
 //! Terminal inputs, such as keypresses, clicks and resizes.
 
+use std::ops::{BitOr, BitOrAssign};
+
 use crate::Vec2;
 
 /// A user input on the terminal.
@@ -9,6 +11,17 @@ pub enum Input {
     Key(KeyPress),
     /// A mouse button was pressed, released or dragged, or the mouse wheel was scrolled.
     Mouse(Mouse),
+}
+
+impl Input {
+    /// Get the modifiers of the input.
+    #[must_use]
+    pub fn modifiers(&self) -> Modifiers {
+        match self {
+            Self::Key(press) => press.modifiers,
+            Self::Mouse(mouse) => mouse.modifiers,
+        }
+    }
 }
 
 impl From<KeyPress> for Input {
@@ -139,9 +152,11 @@ pub enum MouseKind {
     /// A mouse button was pressed.
     Press(MouseButton),
     /// A mouse button was released.
-    Release,
-    /// A mouse button was held or dragged.
-    Hold,
+    Release(MouseButton),
+    /// The mouse was moved with a button held down.
+    Drag(MouseButton),
+    /// The mouse was moved with no buttons held down.
+    Move,
     /// The scroll wheel was scrolled down.
     ScrollDown,
     /// The scroll wheel was scrolled up.
@@ -171,10 +186,47 @@ pub struct Modifiers {
 }
 
 impl Modifiers {
+    /// Only shift.
+    pub const SHIFT: Self = Self {
+        shift: true,
+        control: false,
+        alt: false,
+    };
+    /// Only control.
+    pub const CONTROL: Self = Self {
+        shift: false,
+        control: true,
+        alt: false,
+    };
+    /// Only alt.
+    pub const ALT: Self = Self {
+        shift: false,
+        control: false,
+        alt: true,
+    };
+
     /// Returns `true` if no modifiers held down.
     #[must_use]
     pub const fn are_none(self) -> bool {
         !self.shift && !self.control && !self.alt
+    }
+}
+
+impl BitOr for Modifiers {
+    type Output = Self;
+    fn bitor(self, rhs: Self) -> Self::Output {
+        Self {
+            shift: self.shift | rhs.shift,
+            control: self.control | rhs.control,
+            alt: self.alt | rhs.alt,
+        }
+    }
+}
+impl BitOrAssign for Modifiers {
+    fn bitor_assign(&mut self, rhs: Self) {
+        self.shift |= rhs.shift;
+        self.control |= rhs.control;
+        self.alt |= rhs.alt;
     }
 }
 
@@ -186,9 +238,9 @@ impl Modifiers {
 /// and `char` which just perform an equality check.
 /// - [`Key`](enum.Key.html), which does not allow any modifiers to be held down.
 /// - [`MouseKind`](enum.MouseKind.html), which can occur at any position without modifiers.
-/// - [`MouseButton`](enum.MouseButton.html), which detects when a mouse button was pressed at any
-/// position without modifiers.
 /// - Tuples, which detect any one of the inputs occurring.
+///
+/// You can use the [`input`](../macro.input.html) macro to generate patterns concisely.
 pub trait Pattern {
     /// Whether the pattern matches this input.
     fn matches(&self, input: Input) -> bool;
@@ -233,12 +285,6 @@ impl Pattern for MouseKind {
     }
 }
 
-impl Pattern for MouseButton {
-    fn matches(&self, input: Input) -> bool {
-        MouseKind::Press(*self).matches(input)
-    }
-}
-
 macro_rules! impl_input_pattern_for_tuples {
     ($(($($param:ident),*),)*) => {
         $(
@@ -268,4 +314,331 @@ impl_input_pattern_for_tuples! {
     (A, B, C, D, E, F, G, H, I, J),
     (A, B, C, D, E, F, G, H, I, J, K),
     (A, B, C, D, E, F, G, H, I, J, K, L),
+}
+
+/// A macro that generates [input patterns](input/trait.Pattern.html).
+///
+/// # Examples
+///
+/// A pattern that matches mouse clicks with alt held down:
+///
+/// ```rust
+/// toon::input!(Alt + Mouse(Press))
+/// # ;
+/// ```
+///
+/// A pattern that matches a back tab:
+///
+/// ```rust
+/// toon::input!(Key(Tab) + Shift)
+/// # ;
+/// ```
+///
+/// A pattern that matches the `a` key held without anything else:
+///
+/// ```rust
+/// toon::input!(Key(a) + None);
+/// # ;
+/// ```
+///
+/// # Grammar
+///
+/// ```text
+/// pattern = part [ '+' pattern ] | '!' pattern;
+/// part = '(' pattern ')' | 'Key' key-pattern | 'Mouse' mouse-pattern | modifier-pattern;
+///
+/// key-pattern = [ '(' key ')' ] [ 'where' '(' expression ')' ];
+/// key = 'Backspace'
+///     | 'Left' | 'Right' | 'Up' | 'Down'
+///     | 'Home' | 'End'
+///     | 'PageUp' | 'PageDown'
+///     | 'Insert'
+///     | 'Escape'
+///     | 'F1'-'F12'
+///     | 'F' expression
+///     | 'Tab'
+///     | 'Enter' | 'Return'
+///     | 'Del' | 'Delete'
+///     | '0'-'9'
+///     | '!' | '%' | '^' | '&' | '*' | '-' | '_' | '=' | '+'
+///     | 'a'-'z'
+///     | '|' | ';' | ':' | '@' | '#' | '~' | '<' | '>' | ',' | '.' | '/' | '?'
+///     | char-literal
+///     | 'Char' expression;
+///
+/// mouse-pattern = [ '(' mouse-kind ')' ] [ 'at' mouse-at ] [ 'where' '(' expression ')' ];
+/// mouse-kind = 'Press' [ mouse-button ]
+///     | 'Release' [ mouse-button ]
+///     | 'Drag' [ mouse-button ]
+///     | 'Move'
+///     | 'ScrollDown' | 'ScrollUp';
+/// mouse-button = 'Left' | 'Middle' | 'Right';
+/// mouse-at = '(' ( '_' | expression ) ',' ( '_' | expression ) [ ',' ] ')'
+///
+/// modifier-pattern = 'Shift' | 'Control' | 'Alt' | 'None';
+/// ```
+///
+/// The expression given the the `where` part of `key-pattern` and `mouse-pattern` is a function
+/// that takes a `KeyPress` or `Mouse` and returns a `bool`.
+///
+/// Note that the `!` operator might not work how you expect; `!Control + Key(f)` is equal to
+/// `!(Control + Key(f))` not `(!Control) + Key(f)`.
+#[macro_export]
+macro_rules! input {
+    ($($input:tt)*) => {
+        move |input: $crate::Input| -> $crate::std::primitive::bool {
+            $crate::__internal_input!(input, $($input)*)
+        }
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __internal_input {
+    ($input:ident, !$($rest:tt)*) => {
+        !$crate::__internal_input!($input, $($rest)*)
+    };
+    ($input:ident, ($($inner:tt)*) $(+ $($rest:tt)*)?) => {
+        $crate::__internal_input!($input, $($inner)*) $(&& $crate::__internal_input!($input, $($rest)*))?
+    };
+    // Key pattern
+    ($input:ident, Key $(($($key:tt)*))? $(where ($f:expr))? $(+ $($rest:tt)*)?) => {{
+        #[allow(unused_variables)]
+        let b = $crate::std::matches!(
+                $input,
+                $crate::Input::Key(press) if true
+                    $(&& press.key == $crate::__internal_key!($($key)*))?
+                    $(&& $f(press))?
+            )
+                $(&& $crate::__internal_input!($input, $($rest)*))?;
+        b
+    }};
+    // Mouse pattern
+    ($input:ident,
+        Mouse
+        $(($($mouse:tt)*))?
+        $(at ($($at:tt)*))?
+        $(where ($f:expr))?
+        $(+ $($rest:tt)*)?
+    ) => {{
+        #[allow(unused_variables, clippy::redundant_closure_call)]
+        let b = $crate::std::matches!(
+            $input,
+            $crate::Input::Mouse(mouse) if true
+                $(&& $crate::__internal_mouse_kind!(mouse, $($mouse)*))?
+                $(&& $crate::__internal_mouse_at!(mouse, $($at)*))?
+                $(&& ($f)(mouse))?
+        )
+            $(&& $crate::__internal_input!($input, $($rest)*))?;
+        b
+    }};
+    // Modifier pattern
+    ($input:ident, $modifier:ident $(+ $($rest:tt)*)?) => {
+        $crate::__internal_modifier_pattern!($input, $modifier)
+            $(&& $crate::__internal_input!($input, $($rest)*))?
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+#[rustfmt::skip]
+macro_rules! __internal_key {
+    (Backspace) => ($crate::Key::Backspace);
+    (Left) => ($crate::Key::Left);
+    (Right) => ($crate::Key::Right);
+    (Up) => ($crate::Key::Up);
+    (Down) => ($crate::Key::Down);
+    (Home) => ($crate::Key::Home);
+    (End) => ($crate::Key::End);
+    (PageUp) => ($crate::Key::PageUp);
+    (PageDown) => ($crate::Key::PageDown);
+    (Insert) => ($crate::Key::Insert);
+    (Escape) => ($crate::Key::Escape);
+    (F1) => ($crate::Key::F(1));
+    (F2) => ($crate::Key::F(2));
+    (F3) => ($crate::Key::F(3));
+    (F4) => ($crate::Key::F(4));
+    (F5) => ($crate::Key::F(5));
+    (F6) => ($crate::Key::F(6));
+    (F7) => ($crate::Key::F(7));
+    (F8) => ($crate::Key::F(8));
+    (F9) => ($crate::Key::F(9));
+    (F10) => ($crate::Key::F(10));
+    (F11) => ($crate::Key::F(11));
+    (F12) => ($crate::Key::F(12));
+    (F $n:expr) => ($crate::Key::F($n));
+    (Tab) => ($crate::Key::Char('\t'));
+    (Enter) => ($crate::Key::Char('\n'));
+    (Return) => ($crate::Key::Char('\n'));
+    (Del) => ($crate::Key::Char('\x7F'));
+    (Delete) => ($crate::Key::Char('\x7F'));
+    (1) => ($crate::Key::Char('1'));
+    (2) => ($crate::Key::Char('2'));
+    (3) => ($crate::Key::Char('3'));
+    (4) => ($crate::Key::Char('4'));
+    (5) => ($crate::Key::Char('5'));
+    (6) => ($crate::Key::Char('6'));
+    (7) => ($crate::Key::Char('7'));
+    (8) => ($crate::Key::Char('8'));
+    (9) => ($crate::Key::Char('9'));
+    (0) => ($crate::Key::Char('0'));
+    (!) => ($crate::Key::Char('!'));
+    (%) => ($crate::Key::Char('%'));
+    (^) => ($crate::Key::Char('^'));
+    (&) => ($crate::Key::Char('&'));
+    (*) => ($crate::Key::Char('*'));
+    (-) => ($crate::Key::Char('-'));
+    (_) => ($crate::Key::Char('_'));
+    (=) => ($crate::Key::Char('='));
+    (+) => ($crate::Key::Char('+'));
+    (a) => ($crate::Key::Char('a'));
+    (b) => ($crate::Key::Char('b'));
+    (c) => ($crate::Key::Char('c'));
+    (d) => ($crate::Key::Char('d'));
+    (e) => ($crate::Key::Char('e'));
+    (f) => ($crate::Key::Char('f'));
+    (g) => ($crate::Key::Char('g'));
+    (h) => ($crate::Key::Char('h'));
+    (i) => ($crate::Key::Char('i'));
+    (j) => ($crate::Key::Char('j'));
+    (k) => ($crate::Key::Char('k'));
+    (l) => ($crate::Key::Char('l'));
+    (m) => ($crate::Key::Char('m'));
+    (n) => ($crate::Key::Char('n'));
+    (o) => ($crate::Key::Char('o'));
+    (p) => ($crate::Key::Char('p'));
+    (q) => ($crate::Key::Char('q'));
+    (r) => ($crate::Key::Char('r'));
+    (s) => ($crate::Key::Char('s'));
+    (t) => ($crate::Key::Char('t'));
+    (u) => ($crate::Key::Char('u'));
+    (v) => ($crate::Key::Char('v'));
+    (w) => ($crate::Key::Char('w'));
+    (x) => ($crate::Key::Char('x'));
+    (y) => ($crate::Key::Char('y'));
+    (z) => ($crate::Key::Char('z'));
+    (|) => ($crate::Key::Char('|'));
+    (;) => ($crate::Key::Char(';'));
+    (:) => ($crate::Key::Char(':'));
+    (@) => ($crate::Key::Char('@'));
+    (#) => ($crate::Key::Char('#'));
+    (~) => ($crate::Key::Char('~'));
+    (<) => ($crate::Key::Char('<'));
+    (>) => ($crate::Key::Char('>'));
+    (,) => ($crate::Key::Char(','));
+    (.) => ($crate::Key::Char('.'));
+    (/) => ($crate::Key::Char('/'));
+    (?) => ($crate::Key::Char('?'));
+    ($c:literal) => ($crate::Key::Char($c));
+    (Char $c:expr) => ($crate::Key::Char($c));
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __internal_mouse_kind {
+    ($input:ident, Press $($button:ident)?) => {
+        $crate::std::matches!(
+            $input.kind,
+            $crate::MouseKind::Press(button) $(if button == $crate::MouseButton::$button)?
+        )
+    };
+    ($input:ident, Release $($button:ident)?) => {
+        $crate::std::matches!(
+            $input.kind,
+            $crate::MouseKind::Release(button) $(if button == $crate::MouseButton::$button)?
+        )
+    };
+    ($input:ident, Drag $($button:ident)?) => {
+        $crate::std::matches!(
+            $input.kind,
+            $crate::MouseKind::Drag(button) $(if button == $crate::MouseButton::$button)?
+        )
+    };
+    ($input:ident, $other:ident $(at $($at:tt)*)?) => {
+        $crate::std::matches!($input.kind, $crate::MouseKind::$other)
+    }
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __internal_mouse_at {
+    ($input:ident, $x:expr, $y:expr $(,)?) => {
+        $input.at == $crate::Vec2::new($x, $y)
+    };
+    ($input:ident, _, $y:expr $(,)?) => {
+        $input.at.y == $y
+    };
+    ($input:ident, $x:expr, _ $(,)?) => {
+        $input.at.x == $x
+    };
+}
+
+#[macro_export]
+#[doc(hidden)]
+macro_rules! __internal_modifier_pattern {
+    ($input:ident, Shift) => {
+        $input.modifiers().shift
+    };
+    ($input:ident, Control) => {
+        $input.modifiers().control
+    };
+    ($input:ident, Alt) => {
+        $input.modifiers().alt
+    };
+    ($input:ident, None) => {
+        $input.modifiers().are_none()
+    };
+}
+
+#[test]
+fn test_input_macro() {
+    let mouse = Mouse {
+        kind: MouseKind::Press(MouseButton::Middle),
+        at: Vec2::new(5, 6),
+        size: Vec2::new(7, 8),
+        modifiers: Modifiers::SHIFT,
+    };
+
+    assert!(input!(Key).matches(Input::Key(KeyPress::from('b'))));
+    assert!(input!(Mouse).matches(Input::Mouse(mouse)));
+    assert!(!input!(Key).matches(Input::Mouse(mouse)));
+    assert!(!input!(Mouse).matches(Input::Key(KeyPress::from('b'))));
+
+    assert!(input!(Key(@)).matches(Input::Key(KeyPress::from('@'))));
+
+    assert!(input!(Key(a)).matches(Input::Key(KeyPress::from('A'))));
+
+    assert!(input!(Shift + Key(a)).matches(Input::Key(KeyPress::from('A'))));
+    assert!(!input!(Shift + Key(a)).matches(Input::Key(KeyPress::from('B'))));
+    assert!(!input!(Shift + Key(a)).matches(Input::Key(KeyPress::from('a'))));
+
+    let first = input!((!Shift) + Key(a));
+    let second_1 = input!(!Shift + Key(a));
+    let second_2 = input!(!(Shift + Key(a)));
+
+    assert!(first.matches(Input::Key(KeyPress::from('a'))));
+    assert!(!first.matches(Input::Key(KeyPress::from('A'))));
+    assert!(!first.matches(Input::Key(KeyPress::from('m'))));
+    assert!(!first.matches(Input::Key(KeyPress::from('M'))));
+
+    assert!(second_1.matches(Input::Key(KeyPress::from('a'))));
+    assert!(!second_1.matches(Input::Key(KeyPress::from('A'))));
+    assert!(second_1.matches(Input::Key(KeyPress::from('m'))));
+    assert!(second_1.matches(Input::Key(KeyPress::from('M'))));
+
+    assert!(second_2.matches(Input::Key(KeyPress::from('a'))));
+    assert!(!second_2.matches(Input::Key(KeyPress::from('A'))));
+    assert!(second_2.matches(Input::Key(KeyPress::from('m'))));
+    assert!(second_2.matches(Input::Key(KeyPress::from('M'))));
+
+    assert!(input!(Control + Key(b)).matches(Input::Key(KeyPress {
+        key: Key::Char('b'),
+        modifiers: Modifiers::CONTROL,
+    })));
+
+    assert!(input!(Mouse(Press)).matches(Input::Mouse(mouse)));
+    assert!(!input!(Mouse(Release)).matches(Input::Mouse(mouse)));
+    assert!(!input!(Mouse(Release Middle)).matches(Input::Mouse(mouse)));
+    assert!(input!(Mouse(Press Middle)).matches(Input::Mouse(mouse)));
+    assert!(!input!(Mouse(Press Left)).matches(Input::Mouse(mouse)));
 }

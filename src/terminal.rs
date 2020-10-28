@@ -6,9 +6,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use os_pipe::PipeReader;
 
-use crate::backend::{Backend, Bound, ReadEvents, TerminalEvent, Tty};
+use crate::backend::{Backend, Bound, ReadEvents, TerminalEvent, TerminalMouseKind, Tty};
 use crate::buffer::{Buffer, Cell, Grid};
-use crate::{Color, Element, Input, Intensity, Output, Style, Vec2};
+use crate::{Color, Element, Input, Intensity, Mouse, MouseButton, MouseKind, Output, Style, Vec2};
 
 static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 
@@ -40,6 +40,8 @@ pub struct Terminal<B: Backend> {
     style: Style,
     /// The captured stdout and stderr.
     captured: Option<PipeReader>,
+    /// The held down mouse button.
+    mouse: Option<MouseButton>,
 }
 
 impl<B: Backend> Terminal<B> {
@@ -86,6 +88,7 @@ impl<B: Backend> Terminal<B> {
             cursor_pos: Vec2::default(),
             style: Style::default(),
             captured,
+            mouse: None,
         })
     }
 
@@ -128,36 +131,52 @@ impl<B: Backend> Terminal<B> {
             std::mem::swap(&mut self.old_buffer, &mut self.buffer);
 
             loop {
-                match self.backend_mut().read_event().await? {
-                    TerminalEvent::Input(mut input) => {
-                        if let Input::Mouse(mouse) = &mut input {
-                            mouse.size = self.buffer.size();
-                        }
-
-                        let mut events = crate::events::Vector(Vec::new());
-                        element.handle(input, &mut events);
-                        if !events.0.is_empty() {
-                            return Ok(events.0);
-                        }
-                    }
+                let input = match self.backend_mut().read_event().await? {
+                    TerminalEvent::Key(key) => Input::Key(key),
+                    TerminalEvent::Mouse(mouse) => Input::Mouse(Mouse {
+                        kind: match mouse.kind {
+                            TerminalMouseKind::Press(button) => {
+                                self.mouse = Some(button);
+                                MouseKind::Press(button)
+                            }
+                            TerminalMouseKind::Release => match self.mouse.take() {
+                                Some(button) => MouseKind::Release(button),
+                                None => continue,
+                            },
+                            TerminalMouseKind::Move => match self.mouse {
+                                Some(button) => MouseKind::Drag(button),
+                                None => MouseKind::Move,
+                            },
+                            TerminalMouseKind::ScrollUp => MouseKind::ScrollUp,
+                            TerminalMouseKind::ScrollDown => MouseKind::ScrollDown,
+                        },
+                        at: mouse.at,
+                        size: self.buffer.size(),
+                        modifiers: mouse.modifiers,
+                    }),
+                    TerminalEvent::Resize(size) if size == self.buffer.grid.size() => continue,
                     TerminalEvent::Resize(size) => {
-                        if size != self.buffer.grid.size() {
-                            self.buffer.grid.resize_width(size.x);
-                            self.old_buffer.grid.resize_width(size.x);
+                        self.buffer.grid.resize_width(size.x);
+                        self.old_buffer.grid.resize_width(size.x);
 
-                            self.buffer
-                                .grid
-                                .resize_height_with_anchor(size.y, self.cursor_pos.y);
-                            self.old_buffer
-                                .grid
-                                .resize_height_with_anchor(size.y, self.cursor_pos.y);
+                        self.buffer
+                            .grid
+                            .resize_height_with_anchor(size.y, self.cursor_pos.y);
+                        self.old_buffer
+                            .grid
+                            .resize_height_with_anchor(size.y, self.cursor_pos.y);
 
-                            self.cursor_pos.x = min(self.cursor_pos.x, size.x - 1);
-                            self.cursor_pos.y = min(self.cursor_pos.y, size.y - 1);
+                        self.cursor_pos.x = min(self.cursor_pos.x, size.x - 1);
+                        self.cursor_pos.y = min(self.cursor_pos.y, size.y - 1);
 
-                            break;
-                        }
+                        break;
                     }
+                };
+
+                let mut events = crate::events::Vector(Vec::new());
+                element.handle(input, &mut events);
+                if !events.0.is_empty() {
+                    return Ok(events.0);
                 }
             }
         }

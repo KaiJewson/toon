@@ -31,6 +31,38 @@ pub struct Border {
     pub top_title_align: Option<Alignment>,
     /// The alignment of the title if it's displayed on the bottom of the border.
     pub bottom_title_align: Option<Alignment>,
+    /// Whether the content has one character of padding on either side. All the constants set this
+    /// to `true` as it looks a lot better.
+    ///
+    /// With padding:
+    /// ```text
+    /// ┌──────────────┐
+    /// │ Hello World! │
+    /// └──────────────┘
+    /// ```
+    /// Without padding:
+    /// ```text
+    /// ┌────────────┐
+    /// │Hello World!│
+    /// └────────────┘
+    /// ```
+    pub padding: bool,
+}
+
+impl Border {
+    /// The base border used by the constants below, which override the `sides` and `corners`
+    /// properties.
+    const fn base() -> Self {
+        Self {
+            sides: ('X', 'X', 'X', 'X'),
+            corners: ('X', 'X', 'X', 'X'),
+            style: Style::default(),
+            title_style: Style::default(),
+            top_title_align: None,
+            bottom_title_align: None,
+            padding: true,
+        }
+    }
 }
 
 impl Border {
@@ -44,10 +76,7 @@ impl Border {
     pub const ASCII_PLUS: Self = Self {
         sides: ('-', '|', '|', '-'),
         corners: ('+', '+', '+', '+'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// An curved ASCII border using dots and quotes.
     ///
@@ -59,10 +88,7 @@ impl Border {
     pub const ASCII_CURVED: Self = Self {
         sides: ('-', '|', '|', '-'),
         corners: ('.', '.', '\'', '\''),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A thin border.
     ///
@@ -74,10 +100,7 @@ impl Border {
     pub const THIN: Self = Self {
         sides: ('─', '│', '│', '─'),
         corners: ('┌', '┐', '└', '┘'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A thin, curved border.
     ///
@@ -89,10 +112,7 @@ impl Border {
     pub const THIN_CURVED: Self = Self {
         sides: ('─', '│', '│', '─'),
         corners: ('╭', '╮', '╰', '╯'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A thick border.
     ///
@@ -104,10 +124,7 @@ impl Border {
     pub const THICK: Self = Self {
         sides: ('━', '┃', '┃', '━'),
         corners: ('┏', '┓', '┗', '┛'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A double border.
     ///
@@ -119,10 +136,7 @@ impl Border {
     pub const DOUBLE: Self = Self {
         sides: ('═', '║', '║', '═'),
         corners: ('╔', '╗', '╚', '╝'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A block border. This will look connected on most terminals.
     ///
@@ -134,10 +148,7 @@ impl Border {
     pub const BLOCK: Self = Self {
         sides: ('▀', '█', '█', '▄'),
         corners: ('█', '█', '█', '█'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A thin braille border.
     ///
@@ -149,10 +160,7 @@ impl Border {
     pub const BRAILLE_THIN: Self = Self {
         sides: ('⠉', '⡇', '⢸', '⣀'),
         corners: ('⡏', '⢹', '⣇', '⣸'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
     /// A thick braille border. This will appear like the block border on some terminals.
     ///
@@ -164,10 +172,7 @@ impl Border {
     pub const BRAILLE_THICK: Self = Self {
         sides: ('⠛', '⣿', '⣿', '⣤'),
         corners: ('⣿', '⣿', '⣿', '⣿'),
-        style: Style::default(),
-        title_style: Style::default(),
-        top_title_align: None,
-        bottom_title_align: None,
+        ..Self::base()
     };
 }
 
@@ -198,6 +203,15 @@ impl Border {
             ..self
         }
     }
+
+    /// Turn off the padding around the contents.
+    #[must_use]
+    pub fn no_padding(self) -> Self {
+        Self {
+            padding: false,
+            ..self
+        }
+    }
 }
 
 impl AsRef<Style> for Border {
@@ -216,10 +230,17 @@ impl<Event> Filter<Event> for Border {
         let output_size = output.size();
 
         // Draw the element
-        element.draw(&mut output.area(
-            Vec2::new(1, 1),
-            output_size.map(|dim| dim.saturating_sub(2)),
-        ));
+        element.draw(
+            &mut output.area(
+                Vec2::new(if self.padding { 2 } else { 1 }, 1),
+                Vec2::new(
+                    output_size
+                        .x
+                        .saturating_sub(if self.padding { 4 } else { 2 }),
+                    output_size.y.saturating_sub(2),
+                ),
+            ),
+        );
 
         // The positions of the right and bottom borders, if present.
         let Vec2 {
@@ -331,6 +352,18 @@ impl<Event> Filter<Event> for Border {
             }
         }
     }
+    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
+        let (min, max) = element.width(height);
+        let extra_width = if self.padding { 4 } else { 2 };
+        (
+            min.saturating_add(extra_width),
+            max.saturating_add(extra_width),
+        )
+    }
+    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
+        let (min, max) = element.height(width);
+        (min.saturating_add(2), max.saturating_add(2))
+    }
     fn handle<E: Element<Event = Event>>(
         &self,
         element: E,
@@ -340,14 +373,21 @@ impl<Event> Filter<Event> for Border {
         let input = match input {
             Input::Key(key) => Some(Input::Key(key)),
             Input::Mouse(mouse) => (|| {
-                if mouse.at.x.saturating_add(1) >= mouse.size.x
+                let xborder = if self.padding { 2 } else { 1 };
+
+                if mouse.at.x.saturating_add(xborder) >= mouse.size.x
                     || mouse.at.y.saturating_add(1) >= mouse.size.y
                 {
                     return None;
                 }
-                let at = mouse.at.map(|at| at.checked_sub(1)).both_some()?;
-                let size = mouse.size.map(|size| size.checked_sub(2)).both_some()?;
-                Some(Input::Mouse(Mouse { at, size, ..mouse }))
+                Some(Input::Mouse(Mouse {
+                    at: Vec2::new(mouse.at.x.checked_sub(xborder)?, mouse.at.y.checked_sub(1)?),
+                    size: Vec2::new(
+                        mouse.size.x.checked_sub(if self.padding { 4 } else { 2 })?,
+                        mouse.size.y.checked_sub(2)?,
+                    ),
+                    ..mouse
+                }))
             })(),
         };
         if let Some(input) = input {

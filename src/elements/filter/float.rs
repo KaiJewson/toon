@@ -8,17 +8,16 @@ use super::{Alignment, Filter};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Float {
-    /// The horizontal and vertical alignment of the floating element.
-    pub align: Vec2<Alignment>,
+    /// The horizontal and vertical alignment of the floating element. If `None`, the element will
+    /// not float in that axis.
+    pub align: Vec2<Option<Alignment>>,
 }
 
 impl Float {
     /// Create a new float filter from the given alignment.
     #[must_use]
-    pub fn new(align: impl Into<Vec2<Alignment>>) -> Self {
-        Self {
-            align: align.into(),
-        }
+    pub fn new(align: Vec2<Option<Alignment>>) -> Self {
+        Self { align }
     }
 
     /// Get the offset and size of the element.
@@ -27,18 +26,32 @@ impl Float {
         element: impl Element,
         output_size: Vec2<u16>,
     ) -> (Vec2<u16>, Vec2<u16>) {
-        let width = element.width(None).0;
-        let height = element.height(Some(width)).0;
-        let size = Vec2::min(Vec2::new(width, height), output_size);
+        let size = match (self.align.x, self.align.y) {
+            (Some(_), Some(_)) => {
+                let width = element.width(None).0;
+                let height = element.height(Some(width)).0;
+                Vec2::new(width, height)
+            }
+            (Some(_), None) => {
+                let width = element.width(Some(output_size.y)).0;
+                Vec2::new(width, output_size.y)
+            }
+            (None, Some(_)) => {
+                let height = element.height(Some(output_size.x)).0;
+                Vec2::new(output_size.x, height)
+            }
+            (None, None) => output_size,
+        };
+        let size = Vec2::min(size, output_size);
 
         let offset = self
             .align
             .zip(size)
             .zip(output_size)
             .map(|((align, size), total_size)| match align {
-                Alignment::Start => 0,
-                Alignment::Middle => (total_size / 2).saturating_sub(size / 2),
-                Alignment::End => total_size.saturating_sub(size),
+                Some(Alignment::Start) | None => 0,
+                Some(Alignment::Middle) => (total_size / 2).saturating_sub(size / 2),
+                Some(Alignment::End) => total_size.saturating_sub(size),
             });
 
         (offset, size)
@@ -52,10 +65,26 @@ impl<Event> Filter<Event> for Float {
         element.draw(&mut output.area(offset, size));
     }
     fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        (element.width(height).0, u16::MAX)
+        let width = element.width(height);
+        (
+            width.0,
+            if self.align.x.is_some() {
+                u16::MAX
+            } else {
+                width.1
+            },
+        )
     }
     fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        (element.height(width).0, u16::MAX)
+        let height = element.height(width);
+        (
+            height.0,
+            if self.align.y.is_some() {
+                u16::MAX
+            } else {
+                height.1
+            },
+        )
     }
     fn handle<E: Element<Event = Event>>(
         &self,

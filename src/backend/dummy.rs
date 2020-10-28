@@ -241,7 +241,15 @@ impl<'a> ReadEvents<'a> for Dummy {
     fn read_event(&'a mut self) -> Self::EventFuture {
         self.events.pop_front().map_or_else(
             || future::Either::Right(future::pending()),
-            |event| future::Either::Left(future::ready(Ok(event))),
+            |event| {
+                if let TerminalEvent::Resize(size) = event {
+                    self.buffer.grid.resize_width(size.x);
+                    self.buffer
+                        .grid
+                        .resize_height_with_anchor(size.x, self.cursor_pos.y);
+                }
+                future::Either::Left(future::ready(Ok(event)))
+            },
         )
     }
 }

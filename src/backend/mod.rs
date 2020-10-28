@@ -11,7 +11,7 @@ use std::os::windows::io::{AsRawHandle, RawHandle};
 use os_pipe::PipeReader;
 use stdio_override::{StderrOverride, StdoutOverride};
 
-use crate::{Color, CursorShape, Input, Intensity, Vec2};
+use crate::{Color, CursorShape, Intensity, KeyPress, Modifiers, MouseButton, Vec2};
 
 #[cfg(feature = "crossterm")]
 mod crossterm;
@@ -137,12 +137,38 @@ pub trait ReadEvents<'a> {
 /// An event on the terminal.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum TerminalEvent {
-    /// A user input occurred.
-    ///
-    /// If it is a mouse input, the `size` field is ignored, so you can fill it with anything.
-    Input(Input),
+    /// A key input occurred.
+    Key(KeyPress),
+    /// A mouse input occurred.
+    Mouse(TerminalMouse),
     /// The terminal was resized. Contains the new size.
     Resize(Vec2<u16>),
+}
+
+/// A mouse event on the terminal.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub struct TerminalMouse {
+    /// What kind of mouse event it was.
+    pub kind: TerminalMouseKind,
+    /// Where the mouse event occurred.
+    pub at: Vec2<u16>,
+    /// The modifiers active while the event occurred.
+    pub modifiers: Modifiers,
+}
+
+/// A kind of mouse event on the terminal.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum TerminalMouseKind {
+    /// A mouse button was pressed.
+    Press(MouseButton),
+    /// A mouse button was released.
+    Release,
+    /// The mouse was moved.
+    Move,
+    /// The scroll wheel was scrolled down.
+    ScrollDown,
+    /// The scroll wheel was scrolled up.
+    ScrollUp,
 }
 
 /// A type which backends use to perform I/O.

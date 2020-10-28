@@ -43,6 +43,18 @@ pub trait Collection<'a> {
     }
 }
 
+impl<'a, 'b, T: Collection<'a>> Collection<'a> for &'b T {
+    type Event = T::Event;
+    type Iter = <T as Collection<'a>>::Iter;
+
+    fn iter(&'a self) -> Self::Iter {
+        (**self).iter()
+    }
+    fn len(&'a self) -> usize {
+        (**self).len()
+    }
+}
+
 impl<'a, E: Element + 'a> Collection<'a> for Vec<E> {
     type Event = E::Event;
     #[allow(clippy::type_complexity)]

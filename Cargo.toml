@@ -30,9 +30,10 @@ smol = "1.2.4"
 
 [features]
 # TODO: Remove for release
-default = ["crossterm"]
+default = ["crossterm", "dev"]
 
 crossterm = ["crossterm_crate"]
+dev = ["either"]
 either = ["either_crate"]
 
 # Used for #[doc(cfg)]
@@ -52,3 +53,8 @@ required-features = ["crossterm"]
 name = "stopwatch"
 path = "examples/stopwatch.rs"
 required-features = ["crossterm"]
+
+[[example]]
+name = "dev"
+path = "examples/dev.rs"
+required-features = ["crossterm", "dev"]
