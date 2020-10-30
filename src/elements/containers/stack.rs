@@ -86,7 +86,10 @@ where
 /// ));
 /// ```
 #[must_use]
-pub fn stack<E: for<'a> Collection<'a>>(elements: E) -> Stack<E> {
+pub fn stack<E>(elements: E) -> Stack<E>
+where
+    for<'a> E: Collection<'a>,
+{
     Stack {
         elements,
         broadcast_inputs: false,

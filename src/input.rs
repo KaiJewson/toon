@@ -14,6 +14,23 @@ pub enum Input {
 }
 
 impl Input {
+    /// Get the key press of the input.
+    #[must_use]
+    pub fn key(self) -> Option<KeyPress> {
+        match self {
+            Self::Key(press) => Some(press),
+            Self::Mouse(_) => None,
+        }
+    }
+    /// Get the mouse input of the input.
+    #[must_use]
+    pub fn mouse(self) -> Option<Mouse> {
+        match self {
+            Self::Key(_) => None,
+            Self::Mouse(mouse) => Some(mouse),
+        }
+    }
+
     /// Get the modifiers of the input.
     #[must_use]
     pub fn modifiers(&self) -> Modifiers {
@@ -378,7 +395,7 @@ impl_input_pattern_for_tuples! {
 /// modifier-pattern = 'Shift' | 'Control' | 'Alt' | 'None';
 /// ```
 ///
-/// The expression given the the `where` part of `key-pattern` and `mouse-pattern` is a function
+/// The expression given in the `where` part of `key-pattern` and `mouse-pattern` is a function
 /// that takes a `KeyPress` or `Mouse` and returns a `bool`.
 ///
 /// Note that the `!` operator might not work how you expect; `!Control + Key(f)` is equal to

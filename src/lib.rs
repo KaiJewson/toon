@@ -56,7 +56,6 @@
 //! - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
 //! implements `Element`, `Output` and `Collection` for `Either`.
 #![cfg_attr(feature = "nightly", feature(doc_cfg))]
-#![forbid(unsafe_code)]
 #![warn(
     clippy::pedantic,
     rust_2018_idioms,
@@ -69,6 +68,7 @@
     // u16.
     clippy::cast_possible_truncation,
     clippy::non_ascii_literal,
+    clippy::struct_excessive_bools,
     // See issue #74087: <https://github.com/rust-lang/rust/issues/74087>
     // It is triggered by input.rs' __internal_key! macro
     macro_expanded_macro_exports_accessed_by_absolute_paths,

@@ -16,12 +16,14 @@ pub use float::*;
 pub use on::*;
 pub use size::*;
 pub use title::*;
+pub use input_mask::*;
 
 mod border;
 mod float;
 mod on;
 mod size;
 mod title;
+mod input_mask;
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {

@@ -361,7 +361,10 @@ pub enum End {
 /// ));
 /// ```
 #[must_use]
-pub fn column<E: for<'a> Collection<'a>>(elements: E) -> Flow<E> {
+pub fn column<E>(elements: E) -> Flow<E>
+where
+    for<'a> E: Collection<'a>,
+{
     Flow {
         elements,
         axis: Axis::Y,
@@ -390,7 +393,10 @@ pub fn column<E: for<'a> Collection<'a>>(elements: E) -> Flow<E> {
 /// ));
 /// ```
 #[must_use]
-pub fn row<E: for<'a> Collection<'a>>(elements: E) -> Flow<E> {
+pub fn row<E>(elements: E) -> Flow<E>
+where
+    for<'a> E: Collection<'a>,
+{
     Flow {
         elements,
         axis: Axis::X,

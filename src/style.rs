@@ -396,7 +396,6 @@ impl Rgb {
 
 /// Attributes of text. Not all of these attributes are supported by all terminals.
 #[derive(Default, Debug, Clone, Copy, Hash, PartialEq, Eq)]
-#[allow(clippy::struct_excessive_bools)]
 #[non_exhaustive]
 pub struct Attributes {
     /// The text intensity.

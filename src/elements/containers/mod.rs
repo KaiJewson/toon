@@ -20,8 +20,8 @@ mod stack;
 /// This trait is implemented for vectors of elements and tuples of elements (which can be
 /// different types).
 ///
-/// Note that ideally all collections would just use any type whose reference implements
-/// `IntoIterator` for any element type, but bugs in rustc mean that it doesn't work.
+/// Note: This trait does not work in all scenarios, it is not implemented for vectors of non
+/// static elements. I really don't know why.
 pub trait Collection<'a> {
     /// The events of the elements in the collection.
     type Event: 'a;
@@ -156,6 +156,28 @@ where
             Self::Right(r) => r.len(),
         }
     }
+}
+
+#[allow(clippy::extra_unused_lifetimes)]
+#[allow(dead_code)]
+fn test_collection_implementors<'a>() {
+    fn assert_is_collection<T: for<'a> Collection<'a>>() {}
+    type Element = crate::Block<()>;
+
+    assert_is_collection::<Vec<Element>>();
+    assert_is_collection::<&'a Vec<Element>>();
+    // FIXME: This does not work, I don't know why.
+    // assert_is_collection::<Vec<&'a Element>>();
+    // assert_is_collection::<&'a Vec<&'a Element>>();
+
+    assert_is_collection::<(Element,)>();
+    assert_is_collection::<(&'a Element,)>();
+    assert_is_collection::<(Element, Element)>();
+    assert_is_collection::<(&'a Element, Element)>();
+    assert_is_collection::<(&'a Element, &'a Element)>();
+    assert_is_collection::<&'a (Element, Element)>();
+    assert_is_collection::<&'a (&'a Element, Element)>();
+    assert_is_collection::<&'a (&'a Element, &'a Element)>();
 }
 
 /// An axis: X or Y.

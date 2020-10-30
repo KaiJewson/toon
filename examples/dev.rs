@@ -1,6 +1,8 @@
 //! An example using Toon's developer tools functionality.
 
 use toon::{dev, Crossterm, ElementExt, Terminal};
+use futures_util::stream::StreamExt;
+use futures_util::future::FutureExt;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     smol::block_on(async {
@@ -8,6 +10,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         // Initialize the dev state
         let mut dev = toon::Dev::new();
+        // Get the stream of captured output.
+        let mut dev_events = dev::display_captured(terminal.take_captured().unwrap());
 
         'outer: loop {
             // Wrap the element in dev tools
@@ -17,7 +21,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .on('q', |_| ()),
             );
 
-            let events = terminal.draw(element).await?;
+            let events = futures_util::select! {
+                events = terminal.draw(element).fuse() => events?,
+                event = dev_events.next().fuse() => vec![dev::AppEvent::Dev(event.unwrap())],
+            };
 
             for event in events {
                 match event {

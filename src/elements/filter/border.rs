@@ -226,10 +226,11 @@ impl AsMut<Style> for Border {
 }
 
 impl<Event> Filter<Event> for Border {
+    #[allow(clippy::too_many_lines)]
     fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
         let output_size = output.size();
 
-        // Draw the element
+        // Draw the element.
         element.draw(
             &mut output.area(
                 Vec2::new(if self.padding { 2 } else { 1 }, 1),
@@ -253,6 +254,16 @@ impl<Event> Filter<Event> for Border {
                 None
             }
         });
+
+        // Fill the padding.
+        if self.padding {
+            for y in 1..output_size.y.saturating_sub(1) {
+                output.write_char(Vec2::new(1, y), ' ', self.style);
+                if let Some(right_border) = right_border {
+                    output.write_char(Vec2::new(right_border - 1, y), ' ', self.style);
+                }
+            }
+        }
 
         // Write corners
         let (top_left, top_right, bottom_left, bottom_right) = self.corners;

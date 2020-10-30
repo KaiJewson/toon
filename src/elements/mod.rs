@@ -79,7 +79,7 @@ pub trait ElementExt: Element + Sized {
     /// ```
     /// use toon::{Alignment, ElementExt};
     ///
-    /// # let element = toon::span::<_, ()>("Hello World!");
+    /// # let element = toon::empty::<()>();
     /// let element = element.float((Alignment::End, Alignment::Middle));
     /// ```
     #[must_use]
@@ -155,26 +155,26 @@ pub trait ElementExt: Element + Sized {
     }
     /// Set the minimum size of the element.
     #[must_use]
-    fn min_size(self, size: Vec2<u16>) -> Filtered<Self, Size> {
+    fn min_size(self, size: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
         self.filter(Size {
-            min: size.map(Some),
+            min: size.into().map(Some),
             max: Vec2::new(None, None),
         })
     }
     /// Set the maximum size of the element.
     #[must_use]
-    fn max_size(self, size: Vec2<u16>) -> Filtered<Self, Size> {
+    fn max_size(self, size: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
         self.filter(Size {
             min: Vec2::new(None, None),
-            max: size.map(Some),
+            max: size.into().map(Some),
         })
     }
     /// Set the size range (inclusive) of the element.
     #[must_use]
-    fn size_range(self, min: Vec2<u16>, max: Vec2<u16>) -> Filtered<Self, Size> {
+    fn size_range(self, min: impl Into<Vec2<u16>>, max: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
         self.filter(Size {
-            min: min.map(Some),
-            max: max.map(Some),
+            min: min.into().map(Some),
+            max: max.into().map(Some),
         })
     }
 
@@ -182,6 +182,33 @@ pub trait ElementExt: Element + Sized {
     #[must_use]
     fn map_event<Event2, F: Fn(Self::Event) -> Event2>(self, f: F) -> MapEvent<Self, F> {
         MapEvent { inner: self, f }
+    }
+
+    /// Mask the type of inputs that go through to the element according to the pattern.
+    ///
+    /// # Examples
+    ///
+    /// Prevent all inputs from reaching an element:
+    ///
+    /// ```rust
+    /// use toon::ElementExt;
+    ///
+    /// # let element = toon::empty::<()>();
+    /// let element = element.mask_inputs(());
+    /// ```
+    ///
+    /// Only give the element mouse inputs:
+    ///
+    /// ```rust
+    /// # use toon::ElementExt;
+    /// # let = toon::empty::<()>();
+    /// let element = element.mask_inputs(toon::input!(Mouse));
+    /// ```
+    #[must_use]
+    fn mask_inputs<P: input::Pattern>(self, pattern: P) -> Filtered<Self, InputMask<P>> {
+        self.filter(InputMask {
+            pattern,
+        })
     }
 
     /// Erase the element's type by boxing it.
