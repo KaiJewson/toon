@@ -99,9 +99,7 @@ impl<Event> Filter<Event> for Float {
 
                 mouse
                     .at
-                    .zip(offset)
-                    .map(|(at, offset)| at.checked_sub(offset))
-                    .both_some()
+                    .checked_sub(offset)
                     .filter(|&at| at.x < size.x && at.y < size.y)
                     .map(|at| Input::Mouse(Mouse { at, size, ..mouse }))
             }

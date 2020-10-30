@@ -13,17 +13,19 @@ use crate::{Cursor, Element, Events, Input, KeyPress, Mouse, Style, Vec2};
 
 pub use border::*;
 pub use float::*;
+pub use input_mask::*;
 pub use on::*;
+pub use scroll::*;
 pub use size::*;
 pub use title::*;
-pub use input_mask::*;
 
 mod border;
 mod float;
+mod input_mask;
 mod on;
+mod scroll;
 mod size;
 mod title;
-mod input_mask;
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {

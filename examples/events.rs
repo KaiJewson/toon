@@ -1,6 +1,6 @@
 //! A program that displays all the terminal's events, for experimenting and testing purposes.
 
-use toon::{Crossterm, ElementExt, Input, Terminal};
+use toon::{Crossterm, ElementExt, Input, ScrollOffset, Terminal};
 
 enum Event {
     Quit,
@@ -16,8 +16,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         'outer: loop {
             let events = terminal
                 .draw(
-                    // TODO: Scroll when it gets to the bottom
                     toon::column(&elements)
+                        .scroll_y(ScrollOffset::End(0))
                         .on(|_| true, Event::Input)
                         .on('q', |_| Event::Quit),
                 )

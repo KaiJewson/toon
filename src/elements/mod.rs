@@ -171,7 +171,11 @@ pub trait ElementExt: Element + Sized {
     }
     /// Set the size range (inclusive) of the element.
     #[must_use]
-    fn size_range(self, min: impl Into<Vec2<u16>>, max: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
+    fn size_range(
+        self,
+        min: impl Into<Vec2<u16>>,
+        max: impl Into<Vec2<u16>>,
+    ) -> Filtered<Self, Size> {
         self.filter(Size {
             min: min.into().map(Some),
             max: max.into().map(Some),
@@ -206,8 +210,30 @@ pub trait ElementExt: Element + Sized {
     /// ```
     #[must_use]
     fn mask_inputs<P: input::Pattern>(self, pattern: P) -> Filtered<Self, InputMask<P>> {
-        self.filter(InputMask {
-            pattern,
+        self.filter(InputMask { pattern })
+    }
+
+    /// Scroll the element by a certain amount in the X axis.
+    #[must_use]
+    fn scroll_x(self, x: ScrollOffset) -> Filtered<Self, Scroll> {
+        self.filter(Scroll {
+            by: Vec2::new(Some(x), None),
+        })
+    }
+
+    /// Scroll the element by a certain amount in the Y axis.
+    #[must_use]
+    fn scroll_y(self, y: ScrollOffset) -> Filtered<Self, Scroll> {
+        self.filter(Scroll {
+            by: Vec2::new(None, Some(y)),
+        })
+    }
+
+    /// Scroll the element by a certain amount in both axes.
+    #[must_use]
+    fn scroll(self, by: impl Into<Vec2<ScrollOffset>>) -> Filtered<Self, Scroll> {
+        self.filter(Scroll {
+            by: by.into().map(Some),
         })
     }
 

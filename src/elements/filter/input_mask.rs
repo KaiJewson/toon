@@ -1,4 +1,4 @@
-use crate::{input, Element, Input, Events};
+use crate::{input, Element, Events, Input};
 
 use super::Filter;
 
@@ -6,7 +6,7 @@ use super::Filter;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct InputMask<P> {
     /// The pattern of inputs to allow.
-    pub pattern: P
+    pub pattern: P,
 }
 
 impl<P: input::Pattern, Event> Filter<Event> for InputMask<P> {

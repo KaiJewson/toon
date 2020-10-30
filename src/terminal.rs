@@ -420,7 +420,12 @@ impl Captured {
             let mut nowait = PIPE_NOWAIT;
 
             let res = unsafe {
-                SetNamedPipeHandleState(handle, &mut nowait as LPDWORD, ptr::null_mut(), ptr::null_mut())
+                SetNamedPipeHandleState(
+                    handle,
+                    &mut nowait as LPDWORD,
+                    ptr::null_mut(),
+                    ptr::null_mut(),
+                )
             };
 
             if res == 0 {

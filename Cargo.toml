@@ -22,10 +22,10 @@ unicode-width = "0.1.8"
 # TODO: when the PR gets merged, use it
 stdio-override = { git = "https://github.com/Koxiaet/stdio-override", rev = "335776c" }
 
+blocking = { version = "1.0.2", optional = true }
 crossterm_crate = { package = "crossterm", version = "0.18.0", features = ["event-stream"], optional = true }
 either_crate = { package = "either", version = "1.6.1", optional = true }
 futures_codec = { version = "0.4.1", optional = true }
-blocking = { version = "1.0.2", optional = true }
 
 [target."cfg(unix)".dependencies]
 libc = "0.2.80"

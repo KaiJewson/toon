@@ -82,6 +82,32 @@ impl<T> Vec2<Option<T>> {
     }
 }
 
+macro_rules! checked_arith {
+    ($t:ty) => {
+        impl Vec2<$t> {
+            /// Checked addition.
+            #[must_use]
+            pub fn checked_add(self, rhs: Self) -> Option<Self> {
+                Some(Self {
+                    x: self.x.checked_add(rhs.x)?,
+                    y: self.y.checked_add(rhs.y)?,
+                })
+            }
+
+            /// Checked subtraction.
+            #[must_use]
+            pub fn checked_sub(self, rhs: Self) -> Option<Self> {
+                Some(Self {
+                    x: self.x.checked_sub(rhs.x)?,
+                    y: self.y.checked_sub(rhs.y)?,
+                })
+            }
+        }
+    };
+}
+
+checked_arith!(u16);
+
 impl<T: Add> Vec2<T> {
     /// Get the sum of the x and y components of the vector.
     pub fn sum(self) -> <T as Add>::Output {

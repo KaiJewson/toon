@@ -196,8 +196,13 @@ impl Dev {
     fn bottom_panel(&self) -> impl Element<Event = EventKind> + '_ {
         // TODO: Make this more efficient.
         let contents = crate::column(
-            self.captured.lines().map(ToOwned::to_owned).map(crate::span).collect::<Vec<_>>(),
-        );
+            self.captured
+                .lines()
+                .map(ToOwned::to_owned)
+                .map(crate::span)
+                .collect::<Vec<_>>(),
+        )
+        .scroll_y(crate::ScrollOffset::End(0));
 
         contents
             .title("Console")
@@ -210,7 +215,10 @@ impl Dev {
                     })
                     .top_title(Alignment::Start),
             )
-            .height_range(self.bottom_panel_height, self.bottom_panel_height)
+            .size_range(
+                (0, self.bottom_panel_height),
+                (u16::MAX, self.bottom_panel_height),
+            )
             .on(input!(Mouse(Press Left) at (_, 0)), |_| {
                 EventKind::SetBottomPanelResizing
             })
