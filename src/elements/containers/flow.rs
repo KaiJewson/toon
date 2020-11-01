@@ -1,12 +1,13 @@
-use std::cmp::{max, min};
+use std::cmp::min;
+use std::fmt;
 use std::iter;
 
 use crate::output::{Ext as _, Output};
 use crate::{Element, Events, Input};
 
-use super::{Axis, Collection};
+use super::{combine_cross_axes, combine_main_axes, Axis, Collection};
 
-/// A one-dimensional dynamic element layout, created by the [`column`](fn.column.html) and
+/// A generic one-dimensional dynamic element layout, created by the [`column`](fn.column.html) and
 /// [`row`](fn.row.html) functions.
 ///
 /// The layout algorithm works by calculating the minimum required space for each element, and then
@@ -253,6 +254,14 @@ where
             offset += element_main_axis_size;
         }
     }
+    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+        if let Some(i) = self.focused {
+            if let Some(element) = self.elements.iter().nth(i) {
+                element.title(title)?;
+            }
+        }
+        Ok(())
+    }
     fn width(&self, height: Option<u16>) -> (u16, u16) {
         match self.axis {
             Axis::X => combine_main_axes(self.elements.iter().map(|element| element.width(height))),
@@ -319,18 +328,6 @@ where
             }
         }
     }
-}
-
-fn combine_main_axes(main_axes: impl Iterator<Item = (u16, u16)>) -> (u16, u16) {
-    main_axes.fold((0, 0), |(min_acc, max_acc), (min, max)| {
-        (min_acc + min, max_acc.saturating_add(max))
-    })
-}
-
-fn combine_cross_axes(cross_axes: impl Iterator<Item = (u16, u16)>) -> (u16, u16) {
-    cross_axes.fold((0, 0), |(min_acc, max_acc), (min_len, max_len)| {
-        (max(min_acc, min_len), max(max_acc, max_len))
-    })
 }
 
 /// An end of a container.

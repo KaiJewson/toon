@@ -1,5 +1,6 @@
 //! Containers for several elements.
 
+use std::cmp::max;
 use std::iter;
 use std::slice;
 
@@ -11,9 +12,11 @@ use crate::Vec2;
 
 pub use flow::*;
 pub use stack::*;
+pub use stretch::*;
 
 mod flow;
 mod stack;
+mod stretch;
 
 /// A collection of elements, held by containers.
 ///
@@ -205,7 +208,7 @@ impl Axis {
         self.main_cross_of(v).0
     }
 
-    /// Get the main and cross axis of the `Vec2`.
+    /// Get the main and cross axes of the `Vec2`.
     #[must_use]
     pub fn main_cross_of<T>(self, v: Vec2<T>) -> (T, T) {
         match self {
@@ -213,4 +216,16 @@ impl Axis {
             Self::Y => (v.y, v.x),
         }
     }
+}
+
+fn combine_main_axes(main_axes: impl Iterator<Item = (u16, u16)>) -> (u16, u16) {
+    main_axes.fold((0, 0), |(min_acc, max_acc), (min, max)| {
+        (min_acc + min, max_acc.saturating_add(max))
+    })
+}
+
+fn combine_cross_axes(cross_axes: impl Iterator<Item = (u16, u16)>) -> (u16, u16) {
+    cross_axes.fold((0, 0), |(min_acc, max_acc), (min_len, max_len)| {
+        (max(min_acc, min_len), max(max_acc, max_len))
+    })
 }

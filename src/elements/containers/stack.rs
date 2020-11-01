@@ -1,8 +1,6 @@
-use std::cmp::max;
-
 use crate::{Element, Events, Input, Output};
 
-use super::Collection;
+use super::{combine_cross_axes, Collection};
 
 /// A simple stack of elements, where each one is drawn on top of one another. Created by the
 /// [`stack`](fn.stack.html) function.
@@ -38,20 +36,10 @@ where
         }
     }
     fn width(&self, height: Option<u16>) -> (u16, u16) {
-        self.elements
-            .iter()
-            .map(|element| element.width(height))
-            .fold((0, 0), |(min_acc, max_acc), (min_len, max_len)| {
-                (max(min_acc, min_len), max(max_acc, max_len))
-            })
+        combine_cross_axes(self.elements.iter().map(|element| element.width(height)))
     }
     fn height(&self, width: Option<u16>) -> (u16, u16) {
-        self.elements
-            .iter()
-            .map(|element| element.height(width))
-            .fold((0, 0), |(min_acc, max_acc), (min_len, max_len)| {
-                (max(min_acc, min_len), max(max_acc, max_len))
-            })
+        combine_cross_axes(self.elements.iter().map(|element| element.height(width)))
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
         if self.broadcast_inputs {

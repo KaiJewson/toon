@@ -66,46 +66,55 @@ impl Dev {
         let bottom_panel = self.bottom_panel().map_event(Into::into);
         let inner = self.inner(inner);
 
-        let element = crate::row(if self.focus == Focus::RightDev {
-            Either::Left((
-                crate::column((
-                    inner.on_passive(
-                        (MouseKind::Press(MouseButton::Left), MouseKind::Move),
-                        |_| EventKind::Focus(Focus::Element).into(),
-                    ),
-                    bottom_panel.on_passive(
-                        (MouseKind::Press(MouseButton::Left), MouseKind::Move),
-                        |_| EventKind::Focus(Focus::BottomDev).into(),
-                    ),
-                )),
-                right_panel,
-            ))
-        } else {
-            Either::Right((
-                crate::column(if self.focus == Focus::BottomDev {
-                    Either::Left((
-                        inner.on_passive(
-                            (MouseKind::Press(MouseButton::Left), MouseKind::Move),
-                            |_| EventKind::Focus(Focus::Element).into(),
+        let element = crate::stretch_row(
+            0,
+            if self.focus == Focus::RightDev {
+                Either::Left((
+                    crate::stretch_column(
+                        0,
+                        (
+                            inner.on_passive(
+                                (MouseKind::Press(MouseButton::Left), MouseKind::Move),
+                                |_| EventKind::Focus(Focus::Element).into(),
+                            ),
+                            bottom_panel.on_passive(
+                                (MouseKind::Press(MouseButton::Left), MouseKind::Move),
+                                |_| EventKind::Focus(Focus::BottomDev).into(),
+                            ),
                         ),
-                        bottom_panel,
-                    ))
-                } else {
-                    Either::Right((
-                        inner,
-                        bottom_panel.on_passive(
-                            (MouseKind::Press(MouseButton::Left), MouseKind::Move),
-                            |_| EventKind::Focus(Focus::BottomDev).into(),
-                        ),
-                    ))
-                })
-                .focus(if self.focus == Focus::BottomDev { 1 } else { 0 }),
-                right_panel.on_passive(
-                    (MouseKind::Press(MouseButton::Left), MouseKind::Move),
-                    |_| EventKind::Focus(Focus::RightDev).into(),
-                ),
-            ))
-        })
+                    ),
+                    right_panel,
+                ))
+            } else {
+                Either::Right((
+                    crate::stretch_column(
+                        0,
+                        if self.focus == Focus::BottomDev {
+                            Either::Left((
+                                inner.on_passive(
+                                    (MouseKind::Press(MouseButton::Left), MouseKind::Move),
+                                    |_| EventKind::Focus(Focus::Element).into(),
+                                ),
+                                bottom_panel,
+                            ))
+                        } else {
+                            Either::Right((
+                                inner,
+                                bottom_panel.on_passive(
+                                    (MouseKind::Press(MouseButton::Left), MouseKind::Move),
+                                    |_| EventKind::Focus(Focus::BottomDev).into(),
+                                ),
+                            ))
+                        },
+                    )
+                    .focus(if self.focus == Focus::BottomDev { 1 } else { 0 }),
+                    right_panel.on_passive(
+                        (MouseKind::Press(MouseButton::Left), MouseKind::Move),
+                        |_| EventKind::Focus(Focus::RightDev).into(),
+                    ),
+                ))
+            },
+        )
         .broadcast_keys()
         .focus(if self.focus == Focus::RightDev { 1 } else { 0 })
         .on(input!(Key(Tab)), move |input| {
@@ -186,7 +195,7 @@ impl Dev {
                 })
                 .top_title(Alignment::Start),
         )
-        .width_range(self.right_panel_width, self.right_panel_width)
+        .min_width(self.right_panel_width)
         .on(input!(Mouse(Press Left) at (0, _)), |_| {
             EventKind::SetRightPanelResizing
         })
@@ -316,6 +325,12 @@ impl Default for Dev {
     }
 }
 
+impl Drop for Dev {
+    fn drop(&mut self) {
+        eprintln!("{}", self.captured);
+    }
+}
+
 /// Which part of dev tools is focused.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Focus {
@@ -378,7 +393,8 @@ impl<T> From<EventKind> for AppEvent<T> {
 /// Create a stream of developer tools events from a program's captured stdio. This stream will
 /// never terminate.
 ///
-/// Passing these events to a developer tools will display them on the bottom panel.
+/// Passing these events to a developer tools will display them on the bottom panel, and it will
+/// all be printed to the standard error when the program exits.
 pub fn display_captured(captured: Captured) -> impl Stream<Item = Event> + Unpin {
     futures_codec::FramedRead::new(blocking::Unblock::new(captured), futures_codec::BytesCodec)
         .filter_map(|res| future::ready(res.ok()))
