@@ -205,7 +205,7 @@ pub trait ElementExt: Element + Sized {
     ///
     /// ```rust
     /// # use toon::ElementExt;
-    /// # let = toon::empty::<()>();
+    /// # let element = toon::empty::<()>();
     /// let element = element.mask_inputs(toon::input!(Mouse));
     /// ```
     #[must_use]

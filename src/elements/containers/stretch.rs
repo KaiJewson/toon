@@ -80,7 +80,6 @@ impl<E> Stretch<E> {
             start_offset: 0,
             end_offset: main_axis_size,
             axis: self.axis,
-            main_axis_size,
             cross_axis_size,
         }
     }
@@ -108,8 +107,6 @@ struct Layout<I> {
 
     /// The axis of the container.
     axis: Axis,
-    /// The main axis size of the container.
-    main_axis_size: u16,
     /// The cross axis size of the container.
     cross_axis_size: Option<u16>,
 }
