@@ -5,8 +5,8 @@ use crate::Element;
 
 use super::{Axis, Collection, InnerElement, Layout1D};
 
-/// A generic dynamic element [`Layout1D`](trait.Layout1D.html), created by the
-/// [`flow`](fn.flow.html) function.
+/// A generic dynamic [`Layout1D`](trait.Layout1D.html), created by the [`flow`](fn.flow.html)
+/// function.
 ///
 /// The layout algorithm works by calculating the minimum required space for each element, and then
 /// giving out all extra space equally among the other elements if they support it.

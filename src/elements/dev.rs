@@ -170,7 +170,7 @@ impl Dev {
     /// Create the right panel of the developer tools.
     fn right_panel(&self) -> impl Element<Event = EventKind> + '_ {
         crate::column(
-            crate::flow(),
+            crate::Static,
             (
                 crate::span("Panic!")
                     .bold()
@@ -208,7 +208,7 @@ impl Dev {
     fn bottom_panel(&self) -> impl Element<Event = EventKind> + '_ {
         // TODO: Make this more efficient.
         let contents = crate::column(
-            crate::flow(),
+            crate::Static,
             self.captured
                 .lines()
                 .map(ToOwned::to_owned)
@@ -264,7 +264,7 @@ impl Dev {
     /// Create a abort confirmation dialogue box.
     fn abort_confirmation() -> impl Element<Event = EventKind> {
         crate::column(
-            crate::flow(),
+            crate::Static,
             (
                 crate::span("Are you sure you sure you want to abort the process?"),
                 crate::row(

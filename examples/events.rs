@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         'outer: loop {
             let events = terminal
                 .draw(
-                    toon::column(toon::flow(), &elements)
+                    toon::column(toon::Static, &elements)
                         .scroll_y(ScrollOffset::End(0))
                         .on(|_| true, Event::Input)
                         .on('q', |_| Event::Quit),

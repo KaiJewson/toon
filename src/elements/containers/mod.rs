@@ -12,11 +12,13 @@ use crate::output::{Ext as _, Output};
 use crate::{Element, Events, Input, Vec2};
 
 pub use flow::*;
+pub use r#static::*;
 pub use stack::*;
 pub use stretch::*;
 
 mod flow;
 mod stack;
+mod r#static;
 mod stretch;
 
 /// A collection of elements, held by containers.
