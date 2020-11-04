@@ -66,12 +66,12 @@ impl Dev {
         let bottom_panel = self.bottom_panel().map_event(Into::into);
         let inner = self.inner(inner);
 
-        let element = crate::stretch_row(
-            0,
+        let element = crate::row(
+            crate::stretch(0),
             if self.focus == Focus::RightDev {
                 Either::Left((
-                    crate::stretch_column(
-                        0,
+                    crate::column(
+                        crate::stretch(0),
                         (
                             inner.on_passive(
                                 (MouseKind::Press(MouseButton::Left), MouseKind::Move),
@@ -87,8 +87,8 @@ impl Dev {
                 ))
             } else {
                 Either::Right((
-                    crate::stretch_column(
-                        0,
+                    crate::column(
+                        crate::stretch(0),
                         if self.focus == Focus::BottomDev {
                             Either::Left((
                                 inner.on_passive(
@@ -169,22 +169,25 @@ impl Dev {
 
     /// Create the right panel of the developer tools.
     fn right_panel(&self) -> impl Element<Event = EventKind> + '_ {
-        crate::column((
-            crate::span("Panic!")
-                .bold()
-                .foreground(Color::Red)
-                .filter(Border::THICK.foreground(Color::Red))
-                .on(input!(Mouse(Release Left)), |_| panic!("Dev panel"))
-                .float_x(Alignment::Start),
-            crate::span("Abort!")
-                .bold()
-                .foreground(Color::Red)
-                .filter(Border::THICK.foreground(Color::Red))
-                .on(input!(Mouse(Release Left)), |_| {
-                    EventKind::ToggleAbortConfirm
-                })
-                .float_x(Alignment::Start),
-        ))
+        crate::column(
+            crate::flow(),
+            (
+                crate::span("Panic!")
+                    .bold()
+                    .foreground(Color::Red)
+                    .filter(Border::THICK.foreground(Color::Red))
+                    .on(input!(Mouse(Release Left)), |_| panic!("Dev panel"))
+                    .float_x(Alignment::Start),
+                crate::span("Abort!")
+                    .bold()
+                    .foreground(Color::Red)
+                    .filter(Border::THICK.foreground(Color::Red))
+                    .on(input!(Mouse(Release Left)), |_| {
+                        EventKind::ToggleAbortConfirm
+                    })
+                    .float_x(Alignment::Start),
+            ),
+        )
         .title("Dev panel")
         .filter(
             Border::THIN_CURVED
@@ -205,6 +208,7 @@ impl Dev {
     fn bottom_panel(&self) -> impl Element<Event = EventKind> + '_ {
         // TODO: Make this more efficient.
         let contents = crate::column(
+            crate::flow(),
             self.captured
                 .lines()
                 .map(ToOwned::to_owned)
@@ -259,22 +263,27 @@ impl Dev {
 
     /// Create a abort confirmation dialogue box.
     fn abort_confirmation() -> impl Element<Event = EventKind> {
-        crate::column((
-            crate::span("Are you sure you sure you want to abort the process?"),
-            crate::row((
-                crate::fill(Color::Default),
-                crate::span("Yes")
-                    .filter(Border::THIN)
-                    .on(input!(Mouse(Release Left)), |_| std::process::abort()),
-                crate::span("No")
-                    .filter(Border::THIN)
-                    .on(input!(Mouse(Release Left)), |_| {
-                        EventKind::ToggleAbortConfirm
-                    }),
-                crate::fill(Color::Default),
-            ))
-            .bias(End::Start),
-        ))
+        crate::column(
+            crate::flow(),
+            (
+                crate::span("Are you sure you sure you want to abort the process?"),
+                crate::row(
+                    crate::flow().bias(End::Start),
+                    (
+                        crate::fill(Color::Default),
+                        crate::span("Yes")
+                            .filter(Border::THIN)
+                            .on(input!(Mouse(Release Left)), |_| std::process::abort()),
+                        crate::span("No")
+                            .filter(Border::THIN)
+                            .on(input!(Mouse(Release Left)), |_| {
+                                EventKind::ToggleAbortConfirm
+                            }),
+                        crate::fill(Color::Default),
+                    ),
+                ),
+            ),
+        )
         .filter(Border::THICK)
         .on_passive(input!(Mouse(Release Left)), |_| {
             // Clicking on the popup will cause two ToggleAbortConfirm events, one on
@@ -395,6 +404,10 @@ impl<T> From<EventKind> for AppEvent<T> {
 ///
 /// Passing these events to a developer tools will display them on the bottom panel, and it will
 /// all be printed to the standard error when the program exits.
+///
+/// **Do not use this function when you are printing from inside the drawing function**, as that
+/// will cause the app to redraw instantly, getting it stuck in an infinite loop of printing and
+/// redrawing.
 pub fn display_captured(captured: Captured) -> impl Stream<Item = Event> + Unpin {
     futures_codec::FramedRead::new(blocking::Unblock::new(captured), futures_codec::BytesCodec)
         .filter_map(|res| future::ready(res.ok()))

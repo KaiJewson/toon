@@ -1,32 +1,18 @@
 use std::cmp::min;
-use std::fmt;
 use std::iter;
 
-use crate::output::{Ext as _, Output};
-use crate::{Element, Events, Input};
+use crate::Element;
 
-use super::{combine_cross_axes, combine_main_axes, Axis, Collection};
+use super::{Axis, Collection, InnerElement, Layout1D};
 
-/// A generic one-dimensional dynamic element layout, created by the [`column`](fn.column.html) and
-/// [`row`](fn.row.html) functions.
+/// A generic dynamic element [`Layout1D`](trait.Layout1D.html), created by the
+/// [`flow`](fn.flow.html) function.
 ///
 /// The layout algorithm works by calculating the minimum required space for each element, and then
 /// giving out all extra space equally among the other elements if they support it.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Flow<E> {
-    /// The elements inside this container.
-    pub elements: E,
-    /// The axis this container operates on.
-    pub axis: Axis,
-    /// Whether to broadcast key inputs to all elements. If `false`, only the focused element will
-    /// receive key inputs.
-    pub broadcast_keys: bool,
-    /// The index of the focused element of the container. This element will set the title and
-    /// cursor of the container, and will receive all inputs if `broadcast_keys` is not set.
-    ///
-    /// It is not an error if this element does not exist.
-    pub focused: Option<usize>,
+pub struct Flow {
     /// The direction the flow container is biased towards.
     ///
     /// If `None`, the container will evenly distribute space among its flexible elements, even if
@@ -35,54 +21,80 @@ pub struct Flow<E> {
     pub bias: Option<End>,
 }
 
-impl<E> Flow<E> {
-    /// Broadcast key inputs to all elements, instead of just the focused one.
-    #[must_use]
-    pub fn broadcast_keys(self) -> Self {
-        Self {
-            broadcast_keys: true,
-            ..self
-        }
-    }
-
-    /// Set the focused element of the container.
-    ///
-    /// This element will set the title and cursor of the container, and will receive all inputs if
-    /// `broadcast_keys` is not set.
-    ///
-    /// It is not an error if this element does not exist.
-    #[must_use]
-    pub fn focus(self, element: usize) -> Self {
-        Self {
-            focused: Some(element),
-            ..self
-        }
-    }
-
+impl Flow {
     /// Set the bias of the container.
     ///
     /// The container will fill any extra space by giving more space to the elements at the given
     /// end.
     #[must_use]
+    #[allow(clippy::unused_self)]
     pub fn bias(self, bias: End) -> Self {
-        Self {
-            bias: Some(bias),
-            ..self
-        }
+        Self { bias: Some(bias) }
     }
 }
 
-impl<E> Flow<E> {
-    /// An iterator over the elements in the order of the bias. Panics if there is no bias.
-    fn elements_biased_order<'a>(
+impl<'a, C: Collection<'a>> Layout1D<'a, C> for Flow {
+    // TODO: Make this more efficient with a manual iterator implementation.
+    type Layout = Box<dyn Iterator<Item = InnerElement<'a, <C as Collection<'a>>::Event>> + 'a>;
+
+    fn layout(
         &'a self,
-    ) -> impl Iterator<Item = &'a dyn Element<Event = <E as Collection<'a>>::Event>>
-    where
-        E: Collection<'a>,
-    {
+        elements: &'a C,
+        main_axis_size: u16,
+        cross_axis_size: Option<u16>,
+        axis: Axis,
+    ) -> Self::Layout {
+        let (maximum_growth, dividing_point) =
+            self.calculate_layout(main_axis_size, cross_axis_size, elements, axis);
+
+        let elements_len = elements.len();
+
+        let mut position_accumulator = 0;
+
+        Box::new(elements.iter().enumerate().map(move |(i, element)| {
+            let (min_main_axis_size, max_main_axis_size) = match axis {
+                Axis::X => element.width(cross_axis_size),
+                Axis::Y => element.height(cross_axis_size),
+            };
+
+            let maximum_growth_is_less = match self.bias {
+                Some(End::Start) => i > dividing_point,
+                Some(End::End) => elements_len - i - 1 > dividing_point,
+                None => false,
+            };
+
+            let element_main_axis_size = min(
+                max_main_axis_size,
+                min_main_axis_size
+                    + if maximum_growth_is_less {
+                        maximum_growth - 1
+                    } else {
+                        maximum_growth
+                    },
+            );
+
+            let position = position_accumulator;
+            position_accumulator += element_main_axis_size;
+
+            InnerElement {
+                element,
+                index: i,
+                position,
+                size: element_main_axis_size,
+            }
+        }))
+    }
+}
+
+impl Flow {
+    /// An iterator over the elements in the order of the bias. Panics if there is no bias.
+    fn elements_biased_order<'a, E: Collection<'a>>(
+        self,
+        elements: &'a E,
+    ) -> impl Iterator<Item = &'a dyn Element<Event = <E as Collection<'a>>::Event>> {
         let bias = self.bias.unwrap();
 
-        let mut iter = self.elements.iter();
+        let mut iter = elements.iter();
 
         iter::from_fn(move || match bias {
             End::Start => iter.next(),
@@ -97,17 +109,16 @@ impl<E> Flow<E> {
     /// (end bias) at which the first element of the tuple is treated as one less. If there is no
     /// bias the value is ignored.
     fn calculate_layout<'a>(
-        &'a self,
+        self,
         main_axis_size: u16,
         cross_axis_size: Option<u16>,
-    ) -> (u16, usize)
-    where
-        E: Collection<'a>,
-    {
+        elements: &'a impl Collection<'a>,
+        axis: Axis,
+    ) -> (u16, usize) {
         let mut main_axis_extra_space = main_axis_size.saturating_sub(
-            self.elements
+            elements
                 .iter()
-                .map(|element| match self.axis {
+                .map(|element| match axis {
                     Axis::X => element.width(cross_axis_size).0,
                     Axis::Y => element.height(cross_axis_size).0,
                 })
@@ -115,15 +126,15 @@ impl<E> Flow<E> {
         );
 
         if main_axis_extra_space == 0 {
-            return (0, self.elements.len());
+            return (0, elements.len());
         }
 
         if self.bias.is_some() {
             for maximum_growth in 1.. {
                 let mut elements_grew = false;
 
-                for (i, element) in self.elements_biased_order().enumerate() {
-                    let (min_main_axis_size, max_main_axis_size) = match self.axis {
+                for (i, element) in self.elements_biased_order(elements).enumerate() {
+                    let (min_main_axis_size, max_main_axis_size) = match axis {
                         Axis::X => element.width(cross_axis_size),
                         Axis::Y => element.height(cross_axis_size),
                     };
@@ -153,8 +164,8 @@ impl<E> Flow<E> {
                     let mut overflow = false;
                     let mut elements_grew = false;
 
-                    for element in self.elements.iter() {
-                        let (min_main_axis_size, max_main_axis_size) = match self.axis {
+                    for element in elements.iter() {
+                        let (min_main_axis_size, max_main_axis_size) = match axis {
                             Axis::X => element.width(cross_axis_size),
                             Axis::Y => element.height(cross_axis_size),
                         };
@@ -182,152 +193,6 @@ impl<E> Flow<E> {
             (maximum_growth, /* ignored */ 0)
         }
     }
-
-    /// An iterator over elements and their main axis sizes.
-    fn element_sizes<'a>(
-        &'a self,
-        main_axis_size: u16,
-        cross_axis_size: Option<u16>,
-    ) -> impl Iterator<Item = (u16, &'a dyn Element<Event = <E as Collection<'a>>::Event>)> + 'a
-    where
-        E: Collection<'a>,
-    {
-        let (maximum_growth, dividing_point) =
-            self.calculate_layout(main_axis_size, cross_axis_size);
-
-        let elements_len = self.elements.len();
-
-        self.elements.iter().enumerate().map(move |(i, element)| {
-            let (min_main_axis_size, max_main_axis_size) = match self.axis {
-                Axis::X => element.width(cross_axis_size),
-                Axis::Y => element.height(cross_axis_size),
-            };
-
-            let maximum_growth_is_less = match self.bias {
-                Some(End::Start) => i > dividing_point,
-                Some(End::End) => elements_len - i - 1 > dividing_point,
-                None => false,
-            };
-
-            let element_main_axis_size = min(
-                max_main_axis_size,
-                min_main_axis_size
-                    + if maximum_growth_is_less {
-                        maximum_growth - 1
-                    } else {
-                        maximum_growth
-                    },
-            );
-
-            (element_main_axis_size, element)
-        })
-    }
-}
-
-impl<E, Event> Element for Flow<E>
-where
-    for<'a> E: Collection<'a, Event = Event>,
-{
-    type Event = Event;
-
-    fn draw(&self, output: &mut dyn Output) {
-        let (main_axis_size, cross_axis_size) = self.axis.main_cross_of(output.size());
-
-        let mut offset = 0;
-
-        for (i, (element_main_axis_size, element)) in self
-            .element_sizes(main_axis_size, Some(cross_axis_size))
-            .enumerate()
-        {
-            let size = self.axis.vec(element_main_axis_size, cross_axis_size);
-
-            element.draw(
-                &mut output
-                    .area(self.axis.vec(offset, 0), size)
-                    .on_set_cursor(|output, cursor| {
-                        if self.focused == Some(i) {
-                            output.set_cursor(cursor);
-                        }
-                    }),
-            );
-
-            offset += element_main_axis_size;
-        }
-    }
-    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
-        if let Some(i) = self.focused {
-            if let Some(element) = self.elements.iter().nth(i) {
-                element.title(title)?;
-            }
-        }
-        Ok(())
-    }
-    fn width(&self, height: Option<u16>) -> (u16, u16) {
-        match self.axis {
-            Axis::X => combine_main_axes(self.elements.iter().map(|element| element.width(height))),
-            Axis::Y => height.map_or_else(
-                || combine_cross_axes(self.elements.iter().map(|element| element.width(None))),
-                |height| {
-                    combine_cross_axes(
-                        self.element_sizes(height, None)
-                            .map(|(height, element)| element.width(Some(height))),
-                    )
-                },
-            ),
-        }
-    }
-    fn height(&self, width: Option<u16>) -> (u16, u16) {
-        match self.axis {
-            Axis::X => width.map_or_else(
-                || combine_cross_axes(self.elements.iter().map(|element| element.height(None))),
-                |width| {
-                    combine_cross_axes(
-                        self.element_sizes(width, None)
-                            .map(|(width, element)| element.height(Some(width))),
-                    )
-                },
-            ),
-            Axis::Y => combine_main_axes(self.elements.iter().map(|element| element.height(width))),
-        }
-    }
-    fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
-        match input {
-            Input::Key(_) if self.broadcast_keys => {
-                for element in self.elements.iter() {
-                    element.handle(input, events);
-                }
-            }
-            Input::Key(_) => {
-                if let Some(element) = self.focused.and_then(|i| self.elements.iter().nth(i)) {
-                    element.handle(input, events);
-                }
-            }
-            Input::Mouse(mouse) => {
-                let (mouse_main_axis, mouse_cross_axis) = self.axis.main_cross_of(mouse.at);
-                let (main_axis_size, cross_axis_size) = self.axis.main_cross_of(mouse.size);
-
-                let mut offset = 0;
-
-                for (element_main_axis_size, element) in
-                    self.element_sizes(main_axis_size, Some(cross_axis_size))
-                {
-                    let local_main_axis = mouse_main_axis
-                        .checked_sub(offset)
-                        .filter(|&pos| pos < element_main_axis_size);
-
-                    if let Some(local_main_axis) = local_main_axis {
-                        let mut mouse = mouse;
-                        mouse.at = self.axis.vec(local_main_axis, mouse_cross_axis);
-                        mouse.size = self.axis.vec(element_main_axis_size, cross_axis_size);
-                        element.handle(Input::Mouse(mouse), events);
-                        break;
-                    }
-
-                    offset += element_main_axis_size;
-                }
-            }
-        }
-    }
 }
 
 /// An end of a container.
@@ -339,66 +204,11 @@ pub enum End {
     End,
 }
 
-/// Create a column of elements with the [`Flow`](struct.Flow.html) layout.
+/// Create a new [`Flow`](struct.Flow.html) layout.
 ///
-/// By default keys inputs will not be broadcast to all elements, there will be no focused element,
-/// and the layout will not be biased.
-///
-/// # Example
-///
-/// An element that has text at the top, middle and bottom.
-///
-/// ```
-/// let element = toon::column((
-///     toon::span::<_, ()>("At the top!"),
-///     toon::empty(),
-///     toon::span("At the middle!"),
-///     toon::empty(),
-///     toon::span("At the bottom!"),
-/// ));
-/// ```
+/// By default it will not be biased to either end; this means that it will not always totally fill
+/// the container.
 #[must_use]
-pub fn column<E>(elements: E) -> Flow<E>
-where
-    for<'a> E: Collection<'a>,
-{
-    Flow {
-        elements,
-        axis: Axis::Y,
-        broadcast_keys: false,
-        focused: None,
-        bias: None,
-    }
-}
-
-/// Create a row of elements with the [`Flow`](struct.Flow.html) layout.
-///
-/// By default keys inputs will not be broadcast to all elements, there will be no focused element,
-/// and the layout will not be biased.
-///
-/// # Example
-///
-/// An element that has text at the left, middle and right.
-///
-/// ```
-/// let element = toon::row((
-///     toon::span::<_, ()>("On the left!"),
-///     toon::empty(),
-///     toon::span("In the middle!"),
-///     toon::empty(),
-///     toon::span("On the right!"),
-/// ));
-/// ```
-#[must_use]
-pub fn row<E>(elements: E) -> Flow<E>
-where
-    for<'a> E: Collection<'a>,
-{
-    Flow {
-        elements,
-        axis: Axis::X,
-        broadcast_keys: false,
-        focused: None,
-        bias: None,
-    }
+pub fn flow() -> Flow {
+    Flow { bias: None }
 }

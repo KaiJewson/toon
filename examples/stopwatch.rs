@@ -41,16 +41,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let events = future::race(
                 // - The user causing some events to occur.
                 terminal.draw(
-                    toon::column((
-                        toon::span(format_args!(
-                            "{}:{:03}",
-                            duration.as_secs(),
-                            duration.subsec_millis()
-                        ))
-                        .bold()
-                        .float((toon::Alignment::Middle, toon::Alignment::Middle)),
-                        toon::span("[Space] Start/Stop      [R]: Reset           [Q]: Quit"),
-                    ))
+                    toon::column(
+                        toon::flow(),
+                        (
+                            toon::span(format_args!(
+                                "{}:{:03}",
+                                duration.as_secs(),
+                                duration.subsec_millis()
+                            ))
+                            .bold()
+                            .float((toon::Alignment::Middle, toon::Alignment::Middle)),
+                            toon::span("[Space] Start/Stop      [R]: Reset           [Q]: Quit"),
+                        ),
+                    )
                     .on(' ', |_| Event::Toggle)
                     .on('r', |_| Event::Reset)
                     .on('q', |_| Event::Quit),

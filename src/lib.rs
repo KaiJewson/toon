@@ -73,7 +73,7 @@
     // It is triggered by input.rs' __internal_key! macro
     macro_expanded_macro_exports_accessed_by_absolute_paths,
 )]
-//For checking before a release
+// For checking before a release
 // #![deny(
 //     clippy::dbg_macro,
 //     clippy::print_stdout,

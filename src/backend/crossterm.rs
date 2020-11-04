@@ -169,8 +169,9 @@ impl super::Bound for Bound {
     fn reset(mut self) -> Result<Tty, Self::Error> {
         execute!(
             self.io,
-            terminal::LeaveAlternateScreen,
             event::DisableMouseCapture,
+            terminal::EnableLineWrap,
+            terminal::LeaveAlternateScreen,
             cursor::Show,
         )?;
         terminal::disable_raw_mode()?;
