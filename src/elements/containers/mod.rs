@@ -432,6 +432,15 @@ impl Axis {
             Self::Y => (v.y, v.x),
         }
     }
+
+    /// Get the size of the element from the optional cross axis size.
+    #[must_use]
+    pub fn element_size<E: Element>(self, element: E, cross_axis_size: Option<u16>) -> (u16, u16) {
+        match self {
+            Self::X => element.width(cross_axis_size),
+            Self::Y => element.height(cross_axis_size),
+        }
+    }
 }
 
 /// Create a row of elements with the specified layout.

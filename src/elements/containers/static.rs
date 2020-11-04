@@ -36,10 +36,7 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Static {
     ) -> (u16, u16) {
         let size: u16 = elements
             .iter()
-            .map(|element| match axis {
-                Axis::X => element.width(cross_axis_size).0,
-                Axis::Y => element.height(cross_axis_size).0,
-            })
+            .map(|element| axis.element_size(element, cross_axis_size).0)
             .sum();
 
         (size, size)
@@ -73,10 +70,7 @@ where
         }
 
         let element = self.elements.next()?;
-        let size = match self.axis {
-            Axis::X => element.width(self.cross_axis_size).0,
-            Axis::Y => element.height(self.cross_axis_size).0,
-        };
+        let size = self.axis.element_size(element, self.cross_axis_size).0;
         let index = self.index;
         let position = self.offset;
 

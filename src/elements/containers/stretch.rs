@@ -61,10 +61,7 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Stretch {
                     if i == self.stretched {
                         0
                     } else {
-                        match axis {
-                            Axis::X => element.width(cross_axis_size).0,
-                            Axis::Y => element.height(cross_axis_size).0,
-                        }
+                        axis.element_size(element, cross_axis_size).0
                     }
                 })
                 .sum(),
@@ -127,10 +124,7 @@ where
                 }
 
                 let element = self.elements.next()?;
-                let main_axis_size = match self.axis {
-                    Axis::X => element.width(self.cross_axis_size).0,
-                    Axis::Y => element.height(self.cross_axis_size).0,
-                };
+                let main_axis_size = self.axis.element_size(element, self.cross_axis_size).0;
                 let position = self.start_offset;
                 self.start_offset = self.start_offset.saturating_add(main_axis_size);
                 Some(InnerElement {
@@ -159,10 +153,7 @@ where
 
                 let element = self.elements.next_back()?;
                 let main_axis_size = min(
-                    match self.axis {
-                        Axis::X => element.width(self.cross_axis_size).0,
-                        Axis::Y => element.height(self.cross_axis_size).0,
-                    },
+                    self.axis.element_size(element, self.cross_axis_size).0,
                     self.end_offset - self.start_offset,
                 );
 

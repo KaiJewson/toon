@@ -52,10 +52,8 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Flow {
         let mut position_accumulator = 0;
 
         Box::new(elements.iter().enumerate().map(move |(i, element)| {
-            let (min_main_axis_size, max_main_axis_size) = match axis {
-                Axis::X => element.width(cross_axis_size),
-                Axis::Y => element.height(cross_axis_size),
-            };
+            let (min_main_axis_size, max_main_axis_size) =
+                axis.element_size(element, cross_axis_size);
 
             let maximum_growth_is_less = match self.bias {
                 Some(End::Start) => i > dividing_point,
@@ -118,10 +116,7 @@ impl Flow {
         let mut main_axis_extra_space = main_axis_size.saturating_sub(
             elements
                 .iter()
-                .map(|element| match axis {
-                    Axis::X => element.width(cross_axis_size).0,
-                    Axis::Y => element.height(cross_axis_size).0,
-                })
+                .map(|element| axis.element_size(element, cross_axis_size).0)
                 .fold(0, u16::saturating_add),
         );
 
@@ -134,10 +129,8 @@ impl Flow {
                 let mut elements_grew = false;
 
                 for (i, element) in self.elements_biased_order(elements).enumerate() {
-                    let (min_main_axis_size, max_main_axis_size) = match axis {
-                        Axis::X => element.width(cross_axis_size),
-                        Axis::Y => element.height(cross_axis_size),
-                    };
+                    let (min_main_axis_size, max_main_axis_size) =
+                        axis.element_size(element, cross_axis_size);
 
                     if max_main_axis_size - min_main_axis_size >= maximum_growth {
                         elements_grew = true;
@@ -165,10 +158,8 @@ impl Flow {
                     let mut elements_grew = false;
 
                     for element in elements.iter() {
-                        let (min_main_axis_size, max_main_axis_size) = match axis {
-                            Axis::X => element.width(cross_axis_size),
-                            Axis::Y => element.height(cross_axis_size),
-                        };
+                        let (min_main_axis_size, max_main_axis_size) =
+                            axis.element_size(element, cross_axis_size);
 
                         let range = max_main_axis_size - min_main_axis_size;
 
