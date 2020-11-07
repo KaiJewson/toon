@@ -115,8 +115,10 @@ pub trait Ext: Output {
     ///
     /// You can create an area that draws beyond the bounds of this output, in which case it will
     /// all be ignored.
+    ///
+    /// The `top_left` parameter is conceptually an `i17`, but that doesn't exist so we use `i32`.
     #[must_use]
-    fn area(self, top_left: Vec2<u16>, size: Vec2<u16>) -> Area<Self>
+    fn area(self, top_left: Vec2<i32>, size: Vec2<u16>) -> Area<Self>
     where
         Self: Sized,
     {
@@ -145,7 +147,7 @@ impl<T: Output + ?Sized> Ext for T {}
 pub struct Area<O> {
     /// The inner output.
     pub inner: O,
-    top_left: Vec2<u16>,
+    top_left: Vec2<i32>,
     size: Vec2<u16>,
 }
 
@@ -154,20 +156,36 @@ impl<O: Output> Output for Area<O> {
         self.size
     }
     fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
-        if pos.x < self.size.x
-            && pos.y < self.size.y
-            && (pos.x < self.size.x - 1 || c.width() != Some(2))
+        if pos.x >= self.size.x
+            || pos.y >= self.size.y
+            || (pos.x == self.size.x - 1 && c.width() == Some(2))
         {
-            self.inner.write_char(pos + self.top_left, c, style);
+            return;
         }
+        let pos = match pos
+            .map(i32::from)
+            .checked_add(self.top_left)
+            .and_then(|v| v.try_into::<u16>().ok())
+        {
+            Some(pos) => pos,
+            None => return,
+        };
+        self.inner.write_char(pos, c, style);
     }
     fn set_cursor(&mut self, cursor: Option<Cursor>) {
         self.inner.set_cursor(
             cursor
                 .filter(|cursor| cursor.pos.x < self.size.x && cursor.pos.y < self.size.y)
-                .map(|cursor| Cursor {
-                    pos: cursor.pos + self.top_left,
-                    ..cursor
+                .and_then(|cursor| {
+                    Some(Cursor {
+                        pos: cursor
+                            .pos
+                            .map(i32::from)
+                            .checked_add(self.top_left)?
+                            .try_into::<u16>()
+                            .ok()?,
+                        ..cursor
+                    })
                 }),
         );
     }

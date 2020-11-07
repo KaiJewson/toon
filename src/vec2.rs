@@ -1,3 +1,4 @@
+use std::convert::TryInto;
 use std::mem;
 use std::ops::{Add, AddAssign, Mul, Neg, Sub, SubAssign};
 
@@ -48,13 +49,57 @@ impl<T> Vec2<T> {
             y: self.y.into(),
         }
     }
+    /// Attempt to convert the inner type of the vector.
+    ///
+    /// # Errors
+    ///
+    /// Fails if the conversion of the type fails in either axis.
+    pub fn try_into<U>(self) -> Result<Vec2<U>, T::Error>
+    where
+        T: TryInto<U>,
+    {
+        Ok(Vec2 {
+            x: self.x.try_into()?,
+            y: self.y.try_into()?,
+        })
+    }
 
-    /// Zip this vector with another, producing a vector of a tuples.
+    /// Zip this vector with another, producing a vector of a tuple.
     #[must_use]
     pub fn zip<U>(self, other: Vec2<U>) -> Vec2<(T, U)> {
         Vec2 {
             x: (self.x, other.x),
             y: (self.y, other.y),
+        }
+    }
+
+    /// Zip this vector with two others, producing a vector of a tuple.
+    #[must_use]
+    pub fn zip_3<U, V>(self, second: Vec2<U>, third: Vec2<V>) -> Vec2<(T, U, V)> {
+        Vec2 {
+            x: (self.x, second.x, third.x),
+            y: (self.y, second.y, third.y),
+        }
+    }
+
+    /// Zips the two vectors with a function. This is like a `zip` followed by a `map`.
+    pub fn zip_with<U, R>(self, other: Vec2<U>, mut f: impl FnMut(T, U) -> R) -> Vec2<R> {
+        Vec2 {
+            x: f(self.x, other.x),
+            y: f(self.y, other.y),
+        }
+    }
+
+    /// Zips the three vectors with a function. This is like a `zip_3` followed by a `map`.
+    pub fn zip_3_with<U, V, R>(
+        self,
+        second: Vec2<U>,
+        third: Vec2<V>,
+        mut f: impl FnMut(T, U, V) -> R,
+    ) -> Vec2<R> {
+        Vec2 {
+            x: f(self.x, second.x, third.x),
+            y: f(self.y, second.y, third.y),
         }
     }
 
@@ -83,7 +128,8 @@ impl<T> Vec2<Option<T>> {
 }
 
 macro_rules! checked_arith {
-    ($t:ty) => {
+    ($($t:ty),*) => {
+        $(
         impl Vec2<$t> {
             /// Checked addition.
             #[must_use]
@@ -103,10 +149,11 @@ macro_rules! checked_arith {
                 })
             }
         }
+        )*
     };
 }
 
-checked_arith!(u16);
+checked_arith!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
 
 impl<T: Add> Vec2<T> {
     /// Get the sum of the x and y components of the vector.

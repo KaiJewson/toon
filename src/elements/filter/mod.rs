@@ -17,6 +17,7 @@ pub use input_mask::*;
 pub use on::*;
 pub use scroll::*;
 pub use size::*;
+pub use tile::*;
 pub use title::*;
 
 mod border;
@@ -25,13 +26,14 @@ mod input_mask;
 mod on;
 mod scroll;
 mod size;
+mod tile;
 mod title;
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {
     /// Draw the filtered element to the output.
     ///
-    /// By default this method forwards to `write_char`, `set_title` and `set_cursor`.
+    /// By default this method forwards to `write_char` and `set_cursor`.
     fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
         struct DrawFilterOutput<'a, F: ?Sized, Event> {
             inner: &'a mut dyn Output,

@@ -1,6 +1,7 @@
 use std::cmp::{max, min};
 
-use crate::{Cursor, Element, Events, Input, Mouse, Output, Style, Vec2};
+use crate::output::{Ext as _, Output};
+use crate::{Element, Events, Input, Mouse, Vec2};
 
 use super::Filter;
 
@@ -50,38 +51,9 @@ impl Scroll {
 
 impl<Event> Filter<Event> for Scroll {
     fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
-        struct Out<'a> {
-            inner: &'a mut dyn Output,
-            offset: Vec2<u16>,
-            element_size: Vec2<u16>,
-        }
-
-        impl<'a> Output for Out<'a> {
-            fn size(&self) -> Vec2<u16> {
-                self.element_size
-            }
-            fn write_char(&mut self, pos: Vec2<u16>, c: char, style: Style) {
-                if let Some(inner_pos) = pos.checked_sub(self.offset) {
-                    self.inner.write_char(inner_pos, c, style);
-                }
-            }
-            fn set_cursor(&mut self, cursor: Option<Cursor>) {
-                self.inner.set_cursor(cursor.and_then(|cursor| {
-                    Some(Cursor {
-                        pos: cursor.pos.checked_sub(self.offset)?,
-                        ..cursor
-                    })
-                }));
-            }
-        }
-
         let (element_size, offset) = self.layout(&element, output.size());
 
-        element.draw(&mut Out {
-            inner: output,
-            offset,
-            element_size,
-        });
+        element.draw(&mut output.area(-offset.map(i32::from), element_size));
     }
     fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
         if self.by.x.is_some() {

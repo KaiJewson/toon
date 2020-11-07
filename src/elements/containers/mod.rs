@@ -333,7 +333,7 @@ where
             inner.element.draw(
                 &mut output
                     .area(
-                        self.axis.vec(inner.position, 0),
+                        self.axis.vec(i32::from(inner.position), 0),
                         self.axis.vec(inner.size, cross_axis_size),
                     )
                     .on_set_cursor(|output, cursor| {

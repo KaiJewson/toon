@@ -237,6 +237,24 @@ pub trait ElementExt: Element + Sized {
         })
     }
 
+    /// Tile the element in the X axis with the given offset.
+    #[must_use]
+    fn tile_x(self, offset: u16) -> Filtered<Self, Tile> {
+        self.filter(Tile::new(Vec2::new(Some(offset), None)))
+    }
+
+    /// Tile the element in the Y axis with the given offset.
+    #[must_use]
+    fn tile_y(self, offset: u16) -> Filtered<Self, Tile> {
+        self.filter(Tile::new(Vec2::new(None, Some(offset))))
+    }
+
+    /// Tile the element with the given offset.
+    #[must_use]
+    fn tile(self, offset: impl Into<Vec2<u16>>) -> Filtered<Self, Tile> {
+        self.filter(Tile::new(offset.into().map(Some)))
+    }
+
     /// Erase the element's type by boxing it.
     fn boxed<'a>(self) -> Box<dyn Element<Event = Self::Event> + 'a>
     where

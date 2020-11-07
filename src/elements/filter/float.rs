@@ -44,15 +44,17 @@ impl Float {
         };
         let size = Vec2::min(size, output_size);
 
-        let offset = self
-            .align
-            .zip(size)
-            .zip(output_size)
-            .map(|((align, size), total_size)| match align {
-                Some(Alignment::Start) | None => 0,
-                Some(Alignment::Middle) => (total_size / 2).saturating_sub(size / 2),
-                Some(Alignment::End) => total_size.saturating_sub(size),
-            });
+        let offset =
+            Vec2::zip_3_with(
+                self.align,
+                size,
+                output_size,
+                |align, size, total_size| match align {
+                    Some(Alignment::Start) | None => 0,
+                    Some(Alignment::Middle) => (total_size / 2).saturating_sub(size / 2),
+                    Some(Alignment::End) => total_size.saturating_sub(size),
+                },
+            );
 
         (offset, size)
     }
@@ -62,7 +64,7 @@ impl<Event> Filter<Event> for Float {
     fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
         let (offset, size) = self.calculate_layout(&element, output.size());
 
-        element.draw(&mut output.area(offset, size));
+        element.draw(&mut output.area(offset.map(i32::from), size));
     }
     fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
         let width = element.width(height);
