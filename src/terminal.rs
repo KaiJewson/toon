@@ -377,7 +377,7 @@ impl<B: StdError + 'static> StdError for Error<B> {
 /// Standard output and standard error that has been captured by Toon.
 ///
 /// Note that this is a synchronous reader, and `async-io` does not have the ability to make it
-/// asynchronous on Windows (as wepoll does not support pipes). So you if you want to use it
+/// asynchronous on Windows (as wepoll does not support pipes). So if you want to use it
 /// asynchronously you'll have to wrap it in an
 /// [`Unblock`](https://docs.rs/blocking/1/blocking/struct.Unblock.html) or similar type.
 #[derive(Debug)]

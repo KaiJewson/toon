@@ -3,7 +3,6 @@
 use std::cmp::max;
 use std::fmt::{self, Debug, Formatter};
 use std::iter;
-use std::slice;
 
 #[cfg(feature = "either")]
 use either_crate::Either;
@@ -25,9 +24,6 @@ mod stretch;
 ///
 /// This trait is implemented for vectors of elements and tuples of elements (which can be
 /// different types).
-///
-/// Note: This trait does not work in all scenarios, it is not implemented for vectors of non
-/// static elements. I really don't know why.
 pub trait Collection<'a> {
     /// The events of the elements in the collection.
     type Event: 'a;
@@ -61,18 +57,32 @@ impl<'a, 'b, T: Collection<'a> + ?Sized> Collection<'a> for &'b T {
     }
 }
 
-impl<'a, E: Element + 'a> Collection<'a> for Vec<E> {
+impl<'a, E: Element> Collection<'a> for Vec<E>
+where
+    E::Event: 'a,
+{
     type Event = E::Event;
-    #[allow(clippy::type_complexity)]
-    type Iter = iter::Map<slice::Iter<'a, E>, fn(&'a E) -> &'a dyn Element<Event = Self::Event>>;
+    // We can't write the type directly, as that would mean we have to bound `E: 'a`, so we use a
+    // dynamic trait object instead.
+    type Iter = Box<
+        dyn vec_iter_impl::IteratorAndDoubleEnded<Item = &'a dyn Element<Event = Self::Event>> + 'a,
+    >;
 
     fn iter(&'a self) -> Self::Iter {
-        (**self).iter().map(|element| element)
+        Box::new((**self).iter().map(
+            |element| -> &'a dyn Element<Event = Self::Event> { element },
+        ))
     }
 
     fn len(&'a self) -> usize {
         self.len()
     }
+}
+
+mod vec_iter_impl {
+    /// A trait for an iterator that's double ended, for use in dynamic trait objects.
+    pub trait IteratorAndDoubleEnded: Iterator + DoubleEndedIterator {}
+    impl<T: Iterator + DoubleEndedIterator> IteratorAndDoubleEnded for T {}
 }
 
 macro_rules! tupiter {
@@ -104,31 +114,29 @@ macro_rules! tuple_len {
 }
 
 macro_rules! impl_collection_for_tuples {
-    ($(($first:ident, $($param:ident),*),)*) => {$(
-        impl<'a, $first, $($param,)*> Collection<'a> for ($first, $($param,)*)
+    ($(($($param:ident),*),)*) => {$(
+        impl<'a, Event: 'a, $($param,)*> Collection<'a> for ($($param,)*)
         where
-            $first: Element,
-            <$first as Element>::Event: 'a,
-            $($param: Element<Event = <$first as Element>::Event>,)*
+            $($param: Element<Event = Event>,)*
         {
-            type Event = <$first as Element>::Event;
-            type Iter = tupiter!($first, $($param,)*);
+            type Event = Event;
+            type Iter = tupiter!($($param,)*);
 
             fn iter(&'a self) -> Self::Iter {
                 #[allow(non_snake_case)]
-                let ($first, $($param,)*) = self;
-                create_tupiter!($first, $($param,)*)
+                let ($($param,)*) = self;
+                create_tupiter!($($param,)*)
             }
 
             fn len(&'a self) -> usize {
-                tuple_len!($first, $($param,)*)
+                tuple_len!($($param,)*)
             }
         }
     )*}
 }
 
 impl_collection_for_tuples! {
-    (A,),
+    (A),
     (A, B),
     (A, B, C),
     (A, B, C, D),
@@ -172,9 +180,8 @@ fn test_collection_implementors<'a>() {
 
     assert_is_collection::<Vec<Element>>();
     assert_is_collection::<&'a Vec<Element>>();
-    // FIXME: This does not work, I don't know why.
-    // assert_is_collection::<Vec<&'a Element>>();
-    // assert_is_collection::<&'a Vec<&'a Element>>();
+    assert_is_collection::<Vec<&'a Element>>();
+    assert_is_collection::<&'a Vec<&'a Element>>();
 
     assert_is_collection::<(Element,)>();
     assert_is_collection::<(&'a Element,)>();

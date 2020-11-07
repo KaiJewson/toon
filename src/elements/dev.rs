@@ -206,12 +206,10 @@ impl Dev {
 
     /// Create the bottom panel of the developer tools.
     fn bottom_panel(&self) -> impl Element<Event = EventKind> + '_ {
-        // TODO: Make this more efficient.
         let contents = crate::column(
             crate::Static,
             self.captured
                 .lines()
-                .map(ToOwned::to_owned)
                 .map(crate::span)
                 .collect::<Vec<_>>(),
         )
