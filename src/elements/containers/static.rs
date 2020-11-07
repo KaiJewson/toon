@@ -85,3 +85,21 @@ where
         })
     }
 }
+
+#[test]
+fn test_static() {
+    let mut grid = crate::Grid::new((7, 3));
+
+    crate::column::<_, _, ()>(
+        Static,
+        (
+            crate::span("Some text"),
+            crate::empty(),
+            crate::column(Static, (crate::span("Foo"), crate::span("Bar"))),
+            crate::span("Cut off"),
+        ),
+    )
+    .draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["Some te", "Foo    ", "Bar    ",]);
+}

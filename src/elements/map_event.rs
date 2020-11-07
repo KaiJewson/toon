@@ -8,6 +8,15 @@ use crate::{Element, Input, Output};
 ///
 /// This is not implemented as a [`Filter`](filter/index.html) as filters do not allow changing the
 /// event type due to the lack of default associated types in Rust.
+///
+/// # Examples
+///
+/// ```
+/// use toon::ElementExt;
+///
+/// let unit_event: toon::Block<()> = toon::fill(toon::Color::Red);
+/// let i32_event = unit_event.map_event(|()| 5);
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct MapEvent<T, F> {
     /// The inner element.

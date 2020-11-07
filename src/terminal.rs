@@ -127,7 +127,7 @@ impl<B: Backend> Terminal<B> {
             self.diff()?;
             self.backend_mut().flush()?;
 
-            Element::draw(&crate::fill::<_, ()>(Color::Default), &mut self.old_buffer);
+            self.old_buffer.reset();
             std::mem::swap(&mut self.old_buffer, &mut self.buffer);
 
             loop {

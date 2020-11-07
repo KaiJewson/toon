@@ -74,12 +74,41 @@ where
 /// ));
 /// ```
 #[must_use]
-pub fn stack<E>(elements: E) -> Stack<E>
+pub fn stack<E, Event>(elements: E) -> Stack<E>
 where
-    for<'a> E: Collection<'a>,
+    for<'a> E: Collection<'a, Event = Event>,
 {
     Stack {
         elements,
         broadcast_inputs: false,
     }
+}
+
+#[test]
+fn test_stack() {
+    use crate::{Alignment, ElementExt};
+
+    let mut grid = crate::Grid::new((12, 10));
+
+    stack::<_, ()>((
+        crate::span("x").tile((0, 0)),
+        crate::span("Foo").float((Alignment::Middle, Alignment::Middle)),
+    ))
+    .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        [
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxFooxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+            "xxxxxxxxxxxx",
+        ]
+    );
 }

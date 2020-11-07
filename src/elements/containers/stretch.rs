@@ -174,3 +174,57 @@ where
 pub fn stretch(stretched: usize) -> Stretch {
     Stretch { stretched }
 }
+
+#[test]
+fn test_out_of_range() {
+    let mut grid = crate::Grid::new((6, 5));
+
+    crate::column::<_, _, ()>(
+        stretch(5),
+        (crate::span("1"), crate::span("2"), crate::span("3")),
+    )
+    .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["1     ", "2     ", "3     ", "      ", "      ",]
+    );
+}
+
+#[test]
+fn test_grow() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((3, 5));
+
+    crate::column::<_, _, ()>(
+        stretch(1),
+        (
+            crate::span("1").tile((0, 0)),
+            crate::span("2").tile((0, 0)),
+            crate::span("3").tile((0, 0)),
+        ),
+    )
+    .draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["111", "222", "222", "222", "333",]);
+}
+
+#[test]
+fn test_shrink() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((3, 2));
+
+    crate::column::<_, _, ()>(
+        stretch(1),
+        (
+            crate::span("1").tile((0, 0)),
+            crate::span("2").tile((0, 0)),
+            crate::span("3").tile((0, 0)),
+        ),
+    )
+    .draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["111", "333"]);
+}

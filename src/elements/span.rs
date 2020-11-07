@@ -9,27 +9,23 @@ use crate::{
 };
 
 /// A span of text, created by the [`span`](fn.span.html) function.
+///
+/// # Examples
+///
+/// Display black text on a white background:
+///
+/// ```
+/// use toon::Styled;
+///
+/// let element: toon::Span<_, ()> = toon::span("Hello World").black().on_white();
+/// ```
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
-#[non_exhaustive]
 pub struct Span<T, Event> {
     /// The text being displayed.
     pub text: T,
     /// The style to display the text in.
     pub style: Style,
     event: PhantomData<Event>,
-}
-
-impl<T, Event> Span<T, Event> {
-    /// Create a line of text with the default style. Note that use of the [`span`](fn.span.html)
-    /// function is preferred.
-    #[must_use]
-    pub fn new(text: T) -> Self {
-        Self {
-            text,
-            style: Style::default(),
-            event: PhantomData,
-        }
-    }
 }
 
 impl<T, Event> AsRef<Style> for Span<T, Event> {
@@ -86,5 +82,25 @@ impl<T: Display, Event> Element for Span<T, Event> {
 /// ```
 #[must_use]
 pub fn span<T: Display, Event>(text: T) -> Span<T, Event> {
-    Span::new(text)
+    Span {
+        text,
+        style: Style::default(),
+        event: PhantomData,
+    }
+}
+
+#[test]
+fn test_span() {
+    use crate::Styled;
+
+    let mut grid = crate::Grid::new((3, 2));
+
+    span::<_, ()>("asdf").black().on_white().draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["asd", "   ",]);
+
+    for (top, bottom) in grid.lines()[0].cells().iter().zip(grid.lines()[1].cells()) {
+        assert_eq!(top.style().unwrap(), Style::default().black().on_white());
+        assert_eq!(bottom.style().unwrap(), Style::default());
+    }
 }

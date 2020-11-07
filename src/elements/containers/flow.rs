@@ -207,7 +207,7 @@ where
 
         let maximum_growth_is_less = match self.bias {
             Some(End::Start) => index > self.dividing_point,
-            Some(End::End) => self.elements_len - self.index - 1 > self.dividing_point,
+            Some(End::End) => self.elements_len - index - 1 > self.dividing_point,
             None => false,
         };
 
@@ -249,4 +249,89 @@ pub enum End {
 #[must_use]
 pub fn flow() -> Flow {
     Flow { bias: None }
+}
+
+#[test]
+fn test_too_large() {
+    let mut grid = crate::Grid::new((5, 6));
+
+    crate::column::<_, _, ()>(
+        flow(),
+        (
+            crate::span("Foo"),
+            crate::span("Bar"),
+            crate::span("Baz"),
+            crate::span("Foo2"),
+            crate::span("Bar2"),
+            crate::span("Baz2"),
+            crate::span("Extra Line"),
+        ),
+    )
+    .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["Foo  ", "Bar  ", "Baz  ", "Foo2 ", "Bar2 ", "Baz2 ",]
+    );
+}
+
+#[test]
+fn test_biases() {
+    let mut grid = crate::Grid::new((5, 6));
+
+    let mut three_lines = crate::column::<_, _, ()>(
+        flow(),
+        (
+            crate::span("Top Line"),
+            crate::empty(),
+            crate::span("Middle Line"),
+            crate::empty(),
+            crate::span("Bottom Line"),
+        ),
+    );
+
+    three_lines.draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["Top L", "     ", "Middl", "     ", "Botto", "     ",]
+    );
+
+    three_lines.layout.bias = Some(End::Start);
+    grid.clear();
+    three_lines.draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["Top L", "     ", "     ", "Middl", "     ", "Botto",]
+    );
+
+    three_lines.layout.bias = Some(End::End);
+    grid.clear();
+    three_lines.draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["Top L", "     ", "Middl", "     ", "     ", "Botto",]
+    );
+
+    crate::row::<_, _, ()>(
+        flow().bias(End::Start),
+        (
+            crate::empty(),
+            crate::span("1"),
+            crate::empty(),
+            crate::empty(),
+            crate::span("2"),
+            crate::empty(),
+            crate::span("34"),
+            crate::span("5"),
+            crate::empty(),
+            crate::span("6"),
+            crate::empty(),
+        ),
+    )
+    .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["12345", "     ", "Middl", "     ", "     ", "Botto",]
+    );
 }

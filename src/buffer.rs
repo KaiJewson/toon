@@ -17,6 +17,14 @@ pub struct Buffer {
     pub cursor: Option<Cursor>,
 }
 
+impl Buffer {
+    /// Reset the buffer. This clears the grid and removes the cursor.
+    pub fn reset(&mut self) {
+        self.grid.clear();
+        self.cursor = None;
+    }
+}
+
 impl From<Grid> for Buffer {
     fn from(grid: Grid) -> Self {
         Self { grid, cursor: None }
@@ -112,13 +120,28 @@ impl Grid {
         }
     }
 
-    /// Resize te grid's height from the bottom of the grid.
+    /// Resize the grid's height from the bottom of the grid.
     ///
     /// All new cells will be empty.
     pub fn resize_height(&mut self, new_height: u16) {
         let width = self.width;
         self.lines
             .resize_with(usize::from(new_height), || Line::new(width));
+    }
+
+    /// Get the grid's contents as a vector of strings.
+    ///
+    /// This is mostly useful in tests.
+    #[must_use]
+    pub fn contents(&self) -> Vec<String> {
+        self.lines.iter().map(Line::contents).collect()
+    }
+
+    /// Clear the grid.
+    pub fn clear(&mut self) {
+        for line in &mut self.lines {
+            line.clear();
+        }
     }
 }
 
@@ -193,6 +216,25 @@ impl Line {
         {
             *contents = SmartString::from(" ");
             *double = false;
+        }
+    }
+
+    /// Get the contents of the line as a string.
+    ///
+    /// This is mostly useful in tests.
+    #[must_use]
+    pub fn contents(&self) -> String {
+        self.cells.iter().filter_map(Cell::contents).collect()
+    }
+
+    /// Clear the line.
+    pub fn clear(&mut self) {
+        for cell in &mut self.cells {
+            *cell = Cell::Char {
+                contents: " ".into(),
+                double: false,
+                style: Style::default(),
+            };
         }
     }
 }
@@ -287,7 +329,7 @@ impl Output for Line {
                     ..
                 } = old_second
                 {
-                    self.cells[x + 1] = Cell::Char {
+                    self.cells[x + 2] = Cell::Char {
                         contents: SmartString::from(" "),
                         double: false,
                         style: old_style,
@@ -331,6 +373,14 @@ impl Cell {
     pub fn contents(&self) -> Option<&str> {
         match self {
             Self::Char { contents, .. } => Some(&**contents),
+            _ => None,
+        }
+    }
+    /// Get the style of cell, if present.
+    #[must_use]
+    pub fn style(&self) -> Option<Style> {
+        match self {
+            Self::Char { style, .. } => Some(*style),
             _ => None,
         }
     }
@@ -380,47 +430,53 @@ fn test_line() {
         }
     }
 
-    fn line_contents(line: &Line) -> String {
-        line.cells.iter().filter_map(Cell::contents).collect()
-    }
-
     let mut line = Line::new(0);
     assert_invariants(&line);
 
     line.resize(5);
     assert_invariants(&line);
     assert_eq!(line.len(), 5);
-    assert_eq!(line_contents(&line), "     ");
+    assert_eq!(line.contents(), "     ");
 
     // Drawing a double width character
     line.write_char(Vec2::new(0, 0), '😊', Style::default());
     assert_invariants(&line);
-    assert_eq!(line_contents(&line), "😊   ");
+    assert_eq!(line.contents(), "😊   ");
 
-    // Drawing a double width character over a double width character
+    // Drawing a single width character next to a double width character
+    line.write_char(Vec2::new(2, 0), 'a', Style::default());
+    assert_invariants(&line);
+    assert_eq!(line.contents(), "😊a  ");
+
+    // Drawing a double width character over a double width & single width character
     line.write_char(Vec2::new(1, 0), '😊', Style::default());
     assert_invariants(&line);
-    assert_eq!(line_contents(&line), " 😊  ");
+    assert_eq!(line.contents(), " 😊  ");
+
+    // Drawing a double width character over a double width character
+    line.write_char(Vec2::new(0, 0), '😊', Style::default());
+    assert_invariants(&line);
+    assert_eq!(line.contents(), "😊   ");
 
     // Drawing a double width character at the edge doesn't do anything
     line.write_char(Vec2::new(4, 0), '😊', Style::default());
     assert_invariants(&line);
-    assert_eq!(line_contents(&line), " 😊  ");
+    assert_eq!(line.contents(), "😊   ");
 
     // Drawing a single width character over a double width character
-    line.write_char(Vec2::new(2, 0), 'a', Style::default());
+    line.write_char(Vec2::new(1, 0), 'a', Style::default());
     assert_invariants(&line);
-    assert_eq!(line_contents(&line), "  a  ");
+    assert_eq!(line.contents(), " a   ");
 
     // Drawing a double width character next to a single width character
-    line.write_char(Vec2::new(3, 0), '😊', Style::default());
+    line.write_char(Vec2::new(2, 0), '😊', Style::default());
     assert_invariants(&line);
-    assert_eq!(line_contents(&line), "  a😊");
+    assert_eq!(line.contents(), " a😊 ");
 
     // Resizing the line and removing the double-width char
-    line.resize(4);
+    line.resize(3);
     assert_invariants(&line);
-    assert_eq!(line_contents(&line), "  a ");
+    assert_eq!(line.contents(), " a ");
 }
 
 #[cfg(test)]

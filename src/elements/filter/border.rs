@@ -50,12 +50,12 @@ pub struct Border {
 }
 
 impl Border {
-    /// The base border used by the constants below, which override the `sides` and `corners`
-    /// properties.
-    const fn base() -> Self {
+    /// Create a new border from the sides and corners.
+    #[must_use]
+    pub const fn new(sides: (char, char, char, char), corners: (char, char, char, char)) -> Self {
         Self {
-            sides: ('X', 'X', 'X', 'X'),
-            corners: ('X', 'X', 'X', 'X'),
+            sides,
+            corners,
             style: Style::default(),
             title_style: Style::default(),
             top_title_align: None,
@@ -63,120 +63,6 @@ impl Border {
             padding: true,
         }
     }
-}
-
-impl Border {
-    /// An ASCII border using pluses.
-    ///
-    /// ```text
-    /// +---+
-    /// |   |
-    /// +---+
-    /// ```
-    pub const ASCII_PLUS: Self = Self {
-        sides: ('-', '|', '|', '-'),
-        corners: ('+', '+', '+', '+'),
-        ..Self::base()
-    };
-    /// An curved ASCII border using dots and quotes.
-    ///
-    /// ```text
-    /// .---.
-    /// |   |
-    /// '---'
-    /// ```
-    pub const ASCII_CURVED: Self = Self {
-        sides: ('-', '|', '|', '-'),
-        corners: ('.', '.', '\'', '\''),
-        ..Self::base()
-    };
-    /// A thin border.
-    ///
-    /// ```text
-    /// ┌───┐
-    /// │   │
-    /// └───┘
-    /// ```
-    pub const THIN: Self = Self {
-        sides: ('─', '│', '│', '─'),
-        corners: ('┌', '┐', '└', '┘'),
-        ..Self::base()
-    };
-    /// A thin, curved border.
-    ///
-    /// ```text
-    /// ╭───╮
-    /// │   │
-    /// ╰───╯
-    /// ```
-    pub const THIN_CURVED: Self = Self {
-        sides: ('─', '│', '│', '─'),
-        corners: ('╭', '╮', '╰', '╯'),
-        ..Self::base()
-    };
-    /// A thick border.
-    ///
-    /// ```text
-    /// ┏━━━┓
-    /// ┃   ┃
-    /// ┗━━━┛
-    /// ```
-    pub const THICK: Self = Self {
-        sides: ('━', '┃', '┃', '━'),
-        corners: ('┏', '┓', '┗', '┛'),
-        ..Self::base()
-    };
-    /// A double border.
-    ///
-    /// ```text
-    /// ╔═══╗
-    /// ║   ║
-    /// ╚═══╝
-    /// ```
-    pub const DOUBLE: Self = Self {
-        sides: ('═', '║', '║', '═'),
-        corners: ('╔', '╗', '╚', '╝'),
-        ..Self::base()
-    };
-    /// A block border. This will look connected on most terminals.
-    ///
-    /// ```text
-    /// █▀▀▀█
-    /// █   █
-    /// █▄▄▄█
-    /// ```
-    pub const BLOCK: Self = Self {
-        sides: ('▀', '█', '█', '▄'),
-        corners: ('█', '█', '█', '█'),
-        ..Self::base()
-    };
-    /// A thin braille border.
-    ///
-    /// ```text
-    /// ⡏⠉⠉⠉⢹
-    /// ⡇⠀⠀⠀⢸
-    /// ⣇⣀⣀⣀⣸
-    /// ```
-    pub const BRAILLE_THIN: Self = Self {
-        sides: ('⠉', '⡇', '⢸', '⣀'),
-        corners: ('⡏', '⢹', '⣇', '⣸'),
-        ..Self::base()
-    };
-    /// A thick braille border. This will appear like the block border on some terminals.
-    ///
-    /// ```text
-    /// ⣿⠛⠛⠛⣿
-    /// ⣿⠀⠀⠀⣿
-    /// ⣿⣤⣤⣤⣿
-    /// ```
-    pub const BRAILLE_THICK: Self = Self {
-        sides: ('⠛', '⣿', '⣿', '⣤'),
-        corners: ('⣿', '⣿', '⣿', '⣿'),
-        ..Self::base()
-    };
-}
-
-impl Border {
     /// Set the alignment of the top title of the border.
     #[must_use]
     pub fn top_title(self, align: Alignment) -> Self {
@@ -212,6 +98,81 @@ impl Border {
             ..self
         }
     }
+}
+
+impl Border {
+    /// An ASCII border using pluses.
+    ///
+    /// ```text
+    /// +---+
+    /// |   |
+    /// +---+
+    /// ```
+    pub const ASCII_PLUS: Self = Self::new(('-', '|', '|', '-'), ('+', '+', '+', '+'));
+    /// An curved ASCII border using dots and quotes.
+    ///
+    /// ```text
+    /// .---.
+    /// |   |
+    /// '---'
+    /// ```
+    pub const ASCII_CURVED: Self = Self::new(('-', '|', '|', '-'), ('.', '.', '\'', '\''));
+    /// A thin border.
+    ///
+    /// ```text
+    /// ┌───┐
+    /// │   │
+    /// └───┘
+    /// ```
+    pub const THIN: Self = Self::new(('─', '│', '│', '─'), ('┌', '┐', '└', '┘'));
+    /// A thin, curved border.
+    ///
+    /// ```text
+    /// ╭───╮
+    /// │   │
+    /// ╰───╯
+    /// ```
+    pub const THIN_CURVED: Self = Self::new(('─', '│', '│', '─'), ('╭', '╮', '╰', '╯'));
+    /// A thick border.
+    ///
+    /// ```text
+    /// ┏━━━┓
+    /// ┃   ┃
+    /// ┗━━━┛
+    /// ```
+    pub const THICK: Self = Self::new(('━', '┃', '┃', '━'), ('┏', '┓', '┗', '┛'));
+    /// A double border.
+    ///
+    /// ```text
+    /// ╔═══╗
+    /// ║   ║
+    /// ╚═══╝
+    /// ```
+    pub const DOUBLE: Self = Self::new(('═', '║', '║', '═'), ('╔', '╗', '╚', '╝'));
+    /// A block border. This will look connected on most terminals.
+    ///
+    /// ```text
+    /// █▀▀▀█
+    /// █   █
+    /// █▄▄▄█
+    /// ```
+    pub const BLOCK: Self = Self::new(('▀', '█', '█', '▄'), ('█', '█', '█', '█'));
+    /// A thin braille border.
+    ///
+    /// ```text
+    /// ⡏⠉⠉⠉⢹
+    /// ⡇⠀⠀⠀⢸
+    /// ⣇⣀⣀⣀⣸
+    /// ```
+    pub const BRAILLE_THIN: Self = Self::new(('⠉', '⡇', '⢸', '⣀'), ('⡏', '⢹', '⣇', '⣸'));
+    /// A thick braille border. This will appear like the block border on some terminals.
+    ///
+    /// ```text
+    /// ⣿⠛⠛⠛⣿
+    /// ⣿⠀⠀⠀⣿
+    /// ⣿⣤⣤⣤⣿
+    /// ```
+    pub const BRAILLE_THICK: Self = Self::new(('⠛', '⣿', '⣿', '⣤'), ('⣿', '⣿', '⣿', '⣿'));
 }
 
 impl AsRef<Style> for Border {
@@ -405,4 +366,80 @@ impl<Event> Filter<Event> for Border {
             element.handle(input, events);
         }
     }
+}
+
+#[test]
+fn test_border() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((5, 4));
+
+    crate::span::<_, ()>("-+-")
+        .filter(Border::new(('a', 'b', 'c', 'd'), ('e', 'f', 'g', 'h')))
+        .draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["eaaaf", "b - c", "b   c", "gdddh"]);
+}
+
+#[test]
+fn test_padding() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((16, 3));
+
+    crate::span::<_, ()>("Hello World!")
+        .filter(Border::THIN)
+        .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["┌──────────────┐", "│ Hello World! │", "└──────────────┘",]
+    );
+
+    grid.resize_width(14);
+    crate::span::<_, ()>("Hello World!")
+        .filter(Border::THIN.no_padding())
+        .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["┌────────────┐", "│Hello World!│", "└────────────┘",]
+    );
+}
+
+#[test]
+fn test_title() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((18, 2));
+
+    let element = crate::empty::<()>().title("Hello😊World❗");
+
+    element
+        .filter(
+            Border::ASCII_PLUS
+                .top_title(Alignment::Start)
+                .bottom_title(Alignment::End),
+        )
+        .draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["+Hello😊World❗--+", "+--Hello😊World❗+",]
+    );
+
+    element
+        .filter(Border::ASCII_PLUS.bottom_title(Alignment::Middle))
+        .draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["+----------------+", "+-Hello😊World❗-+",]
+    );
+
+    grid.resize_width(8);
+    grid.resize_height(1);
+
+    element
+        .filter(Border::ASCII_PLUS.top_title(Alignment::Middle))
+        .draw(&mut grid);
+    assert_eq!(grid.contents(), ["+Hello-+",]);
 }

@@ -111,3 +111,56 @@ impl<Event> Filter<Event> for Float {
         }
     }
 }
+
+#[test]
+fn test_float_x() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((10, 3));
+
+    crate::span::<_, ()>("Foo")
+        .tile_y(0)
+        .float_x(Alignment::Middle)
+        .draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["    Foo   "; 3]);
+
+    grid.resize_width(2);
+    grid.clear();
+    crate::span::<_, ()>("Foo")
+        .tile_y(0)
+        .float_x(Alignment::Middle)
+        .draw(&mut grid);
+
+    assert_eq!(grid.contents(), ["Fo"; 3]);
+}
+
+#[test]
+fn test_float_y() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((2, 8));
+
+    crate::span::<_, ()>("X")
+        .tile((0, 0))
+        .min_height(2)
+        .float_y(Alignment::Middle)
+        .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["  ", "  ", "  ", "XX", "XX", "  ", "  ", "  ",]
+    );
+
+    grid.clear();
+    crate::span::<_, ()>("X")
+        .tile((0, 0))
+        .min_height(2)
+        .float_y(Alignment::End)
+        .draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        ["  ", "  ", "  ", "  ", "  ", "  ", "XX", "XX",]
+    );
+}

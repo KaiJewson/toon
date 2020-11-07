@@ -116,3 +116,68 @@ impl<Event> Filter<Event> for Tile {
         );
     }
 }
+
+#[cfg(test)]
+fn test_el() -> impl Element {
+    crate::column::<_, _, ()>(crate::Static, (crate::span("abc"), crate::span("def")))
+}
+
+#[test]
+fn test_tile_x() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((12, 3));
+
+    test_el().tile_x(2).draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["bcabcabcabca", "efdefdefdefd", "            ",]
+    );
+
+    test_el().tile_x(3).draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["abcabcabcabc", "defdefdefdef", "            ",]
+    );
+}
+
+#[test]
+fn test_tile_y() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((4, 6));
+
+    test_el().tile_y(1).draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["def ", "abc ", "def ", "abc ", "def ", "abc ",]
+    );
+
+    test_el().tile_y(2).draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["abc ", "def ", "abc ", "def ", "abc ", "def ",]
+    );
+}
+
+#[test]
+fn test_tile_both() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((13, 7));
+
+    test_el().tile((2, 1)).draw(&mut grid);
+
+    assert_eq!(
+        grid.contents(),
+        [
+            "efdefdefdefde",
+            "bcabcabcabcab",
+            "efdefdefdefde",
+            "bcabcabcabcab",
+            "efdefdefdefde",
+            "bcabcabcabcab",
+            "efdefdefdefde",
+        ]
+    );
+}

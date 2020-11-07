@@ -472,7 +472,11 @@ impl Axis {
 /// By default keys inputs will not be broadcast to all elements and there will be no focused
 /// element.
 #[must_use]
-pub fn row<E, L>(layout: L, elements: E) -> Container1D<E, L> {
+pub fn row<E, L, Event>(layout: L, elements: E) -> Container1D<E, L>
+where
+    for<'a> E: Collection<'a, Event = Event>,
+    for<'a> L: Layout1D<'a, E>,
+{
     Container1D {
         elements,
         layout,
@@ -489,7 +493,11 @@ pub fn row<E, L>(layout: L, elements: E) -> Container1D<E, L> {
 /// By default keys inputs will not be broadcast to all elements and there will be no focused
 /// element.
 #[must_use]
-pub fn column<E, L>(layout: L, elements: E) -> Container1D<E, L> {
+pub fn column<E, L, Event>(layout: L, elements: E) -> Container1D<E, L>
+where
+    for<'a> E: Collection<'a, Event = Event>,
+    for<'a> L: Layout1D<'a, E>,
+{
     Container1D {
         elements,
         layout,

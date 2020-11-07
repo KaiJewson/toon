@@ -13,7 +13,7 @@ use super::Filter;
 /// This is the opposite of [`Float`](struct.Float.html); instead of drawing the element to smaller
 /// viewport than the output it draws the element to a larger viewport.
 ///
-/// Note that this is a super-basic container: it doesn't have scroll wheel support or draw a
+/// Note that this is a very minimal container: it doesn't have scroll wheel support or draw a
 /// scroll bar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Scroll {
@@ -101,4 +101,67 @@ pub enum ScrollOffset {
     Start(u16),
     /// Scroll from the end of the container.
     End(u16),
+}
+
+#[test]
+fn test_scroll_no_fill() {
+    use crate::ElementExt;
+
+    let mut grid = crate::Grid::new((5, 5));
+
+    let no_fill = &crate::column::<_, _, ()>(crate::Static, vec![crate::span("abc"); 3]);
+
+    no_fill
+        .scroll((ScrollOffset::Start(5), ScrollOffset::End(3)))
+        .draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["abc  ", "abc  ", "abc  ", "     ", "     "]
+    );
+
+    no_fill.scroll_x(ScrollOffset::End(0)).draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["abc  ", "abc  ", "abc  ", "     ", "     "]
+    );
+
+    no_fill.scroll_y(ScrollOffset::Start(0)).draw(&mut grid);
+    assert_eq!(
+        grid.contents(),
+        ["abc  ", "abc  ", "abc  ", "     ", "     "]
+    );
+}
+
+#[test]
+fn test_scroll_start() {
+    use crate::ElementExt;
+
+    let mut line = crate::Line::new(2);
+
+    crate::span::<_, ()>("abcde")
+        .scroll_x(ScrollOffset::Start(2))
+        .draw(&mut line);
+    assert_eq!(line.contents(), "cd");
+
+    crate::span::<_, ()>("abcde")
+        .scroll_x(ScrollOffset::Start(1000))
+        .draw(&mut line);
+    assert_eq!(line.contents(), "de");
+}
+
+#[test]
+fn test_scroll_end() {
+    use crate::ElementExt;
+
+    let mut line = crate::Line::new(2);
+
+    crate::span::<_, ()>("abcde")
+        .scroll_x(ScrollOffset::End(2))
+        .draw(&mut line);
+    assert_eq!(line.contents(), "bc");
+
+    crate::span::<_, ()>("abcde")
+        .scroll_x(ScrollOffset::End(1000))
+        .draw(&mut line);
+    assert_eq!(line.contents(), "ab");
 }

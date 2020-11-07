@@ -64,3 +64,29 @@ pub fn fill<C: Into<Color>, Event>(color: C) -> Block<Event> {
 pub fn empty<Event>() -> Block<Event> {
     Block::new(None)
 }
+
+#[test]
+fn test_block() {
+    use crate::Styled;
+
+    let mut grid = crate::Grid::new((5, 10));
+
+    fill::<_, ()>(Color::Red).draw(&mut grid);
+
+    for line in grid.lines() {
+        for cell in line.cells() {
+            assert_eq!(
+                cell,
+                &crate::Cell::Char {
+                    contents: " ".into(),
+                    double: false,
+                    style: Style::default().on_red(),
+                },
+            );
+        }
+    }
+
+    let old_grid = grid.clone();
+    empty::<()>().draw(&mut grid);
+    assert_eq!(grid, old_grid);
+}
