@@ -1,4 +1,17 @@
 //! Containers for several elements.
+//!
+//! # Which 1D layout to use?
+//!
+//! Toon's 1D container, [`Container1D`](struct.Container1D), can use multiple
+//! [layouts](trait.Layout1D.html) to draw its elements.
+//!
+//! - [`Static`](struct.Static.html) is the simplest and fastest layout. It gives each element the
+//! minimum space it needs, and any extra space is left blank.
+//! - [`Stretch`](struct.Stretch.html) is more advanced and also fast. It gives each element except
+//! one the minimum space it needs, and then gives all the rest of the space to the one element.
+//! - [`Flow`](struct.Flow.html) is the most advanced and the slowest. It gives each element the
+//! minimum space it needs, and then distributes all remaining space evenly among elements that
+//! support it.
 
 use std::cmp::max;
 use std::fmt::{self, Debug, Formatter};
@@ -454,6 +467,8 @@ impl Axis {
 
 /// Create a row of elements with the specified layout.
 ///
+/// This takes a [`Layout1D`](trait.Layout1D) and a [`Collection`](trait.Collection.html).
+///
 /// By default keys inputs will not be broadcast to all elements and there will be no focused
 /// element.
 #[must_use]
@@ -468,6 +483,8 @@ pub fn row<E, L>(layout: L, elements: E) -> Container1D<E, L> {
 }
 
 /// Create a column of elements with the specified layout.
+///
+/// This takes a [`Layout1D`](trait.Layout1D) and a [`Collection`](trait.Collection.html).
 ///
 /// By default keys inputs will not be broadcast to all elements and there will be no focused
 /// element.

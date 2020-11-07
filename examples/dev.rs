@@ -21,16 +21,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     .on('q', |_| ()),
             );
 
-            let events = future::race(terminal.draw(element), async {
-                Ok(vec![dev::AppEvent::Dev(dev_events.next().await.unwrap())])
-            })
+            let events = future::race(
+                // The user has caused some events to occur.
+                terminal.draw(element),
+                // Something has been printed to the standard output or error and we need to update
+                // the dev tools to display it.
+                async { Ok(vec![dev::AppEvent::Dev(dev_events.next().await.unwrap())]) },
+            )
             .await?;
 
             for event in events {
                 match event {
                     // An event in the element itself telling us to quit.
                     dev::AppEvent::Element(()) => break 'outer,
-                    // An event in the dev tools, which we then apply ot its state.
+                    // An event in the dev tools, which we then apply to its state.
                     dev::AppEvent::Dev(e) => dev.apply(e),
                 }
             }

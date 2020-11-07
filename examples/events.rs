@@ -1,4 +1,4 @@
-//! A program that displays all the terminal's events, for experimenting and testing purposes.
+//! A program that displays all the users's inputs, for experimenting and testing purposes.
 
 use toon::{Crossterm, ElementExt, Input, ScrollOffset, Terminal};
 

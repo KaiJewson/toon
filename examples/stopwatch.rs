@@ -42,7 +42,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 // - The user causing some events to occur.
                 terminal.draw(
                     toon::column(
-                        toon::flow(),
+                        toon::stretch(0),
                         (
                             toon::span(format_args!(
                                 "{}:{:03}",

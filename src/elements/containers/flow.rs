@@ -5,6 +5,8 @@ use crate::Element;
 
 use super::{Axis, Collection, InnerElement, Layout1D};
 
+use self::private::Layout;
+
 /// A generic dynamic [`Layout1D`](trait.Layout1D.html), created by the [`flow`](fn.flow.html)
 /// function.
 ///
@@ -34,8 +36,7 @@ impl Flow {
 }
 
 impl<'a, C: Collection<'a>> Layout1D<'a, C> for Flow {
-    // TODO: Make this more efficient with a manual iterator implementation.
-    type Layout = Box<dyn Iterator<Item = InnerElement<'a, <C as Collection<'a>>::Event>> + 'a>;
+    type Layout = Layout<<C as Collection<'a>>::Iter>;
 
     fn layout(
         &'a self,
@@ -47,40 +48,18 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Flow {
         let (maximum_growth, dividing_point) =
             self.calculate_layout(main_axis_size, cross_axis_size, elements, axis);
 
-        let elements_len = elements.len();
-
-        let mut position_accumulator = 0;
-
-        Box::new(elements.iter().enumerate().map(move |(i, element)| {
-            let (min_main_axis_size, max_main_axis_size) =
-                axis.element_size(element, cross_axis_size);
-
-            let maximum_growth_is_less = match self.bias {
-                Some(End::Start) => i > dividing_point,
-                Some(End::End) => elements_len - i - 1 > dividing_point,
-                None => false,
-            };
-
-            let element_main_axis_size = min(
-                max_main_axis_size,
-                min_main_axis_size
-                    + if maximum_growth_is_less {
-                        maximum_growth - 1
-                    } else {
-                        maximum_growth
-                    },
-            );
-
-            let position = position_accumulator;
-            position_accumulator += element_main_axis_size;
-
-            InnerElement {
-                element,
-                index: i,
-                position,
-                size: element_main_axis_size,
-            }
-        }))
+        Layout {
+            elements: elements.iter(),
+            elements_len: elements.len(),
+            index: 0,
+            maximum_growth,
+            dividing_point,
+            position_accumulator: 0,
+            main_axis_size,
+            cross_axis_size,
+            axis,
+            bias: self.bias,
+        }
     }
 }
 
@@ -183,6 +162,74 @@ impl Flow {
                 .unwrap_or(0);
             (maximum_growth, /* ignored */ 0)
         }
+    }
+}
+
+mod private {
+    use super::super::Axis;
+    use super::End;
+
+    #[derive(Debug)]
+    pub struct Layout<I> {
+        pub(super) elements: I,
+        pub(super) elements_len: usize,
+        pub(super) index: usize,
+
+        pub(super) maximum_growth: u16,
+        pub(super) dividing_point: usize,
+
+        pub(super) position_accumulator: u16,
+
+        pub(super) main_axis_size: u16,
+        pub(super) cross_axis_size: Option<u16>,
+        pub(super) axis: Axis,
+        pub(super) bias: Option<End>,
+    }
+}
+
+impl<'a, I, Event: 'a> Iterator for Layout<I>
+where
+    I: Iterator<Item = &'a dyn Element<Event = Event>> + 'a,
+{
+    type Item = InnerElement<'a, Event>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.position_accumulator >= self.main_axis_size {
+            return None;
+        }
+
+        let element = self.elements.next()?;
+        let index = self.index;
+
+        self.index += 1;
+
+        let (min_size, max_size) = self.axis.element_size(element, self.cross_axis_size);
+
+        let maximum_growth_is_less = match self.bias {
+            Some(End::Start) => index > self.dividing_point,
+            Some(End::End) => self.elements_len - self.index - 1 > self.dividing_point,
+            None => false,
+        };
+
+        let size = min(
+            max_size,
+            min_size
+                + if maximum_growth_is_less {
+                    self.maximum_growth - 1
+                } else {
+                    self.maximum_growth
+                },
+        );
+
+        let position = self.position_accumulator;
+        self.position_accumulator += size;
+
+        Some(InnerElement {
+            element,
+            index,
+            position,
+            size,
+        })
     }
 }
 
