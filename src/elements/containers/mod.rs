@@ -69,9 +69,11 @@ where
     >;
 
     fn iter(&'a self) -> Self::Iter {
-        Box::new((**self).iter().map(
-            |element| -> &'a dyn Element<Event = Self::Event> { element },
-        ))
+        Box::new(
+            (**self)
+                .iter()
+                .map(|element| -> &'a dyn Element<Event = Self::Event> { element }),
+        )
     }
 
     fn len(&'a self) -> usize {

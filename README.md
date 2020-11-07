@@ -1,8 +1,8 @@
 # toon
 
+[![Github](https://img.shields.io/badge/repository-github-24292e)](https://github.com/KaiJewson/toon)
 [![Crates.io](https://img.shields.io/crates/v/toon)](https://crates.io/crates/toon)
-[![Github](https://img.shields.io/badge/-github-24292e)](https://github.com/KaiJewson/toon)
-[![docs.rs](https://img.shields.io/badge/-docs.rs-informational)](https://docs.rs/toon)
+[![docs.rs](https://docs.rs/toon/badge.svg)](https://docs.rs/toon)
 
 A simple, declarative, and modular TUI library.
 
@@ -52,6 +52,7 @@ terminal.cleanup()
 Toon offers the following features, none of which are enabled by default:
 - `crossterm`: Enable the
 [Crossterm](https://docs.rs/toon/0.1/toon/backend/struct.Crossterm.html) backend.
+- `dev`: Enable developer tools.
 - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
 implements `Element`, `Output` and `Collection` for `Either`.
 

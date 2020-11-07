@@ -1,6 +1,6 @@
+//! [![Github](https://img.shields.io/badge/repository-github-24292e)](https://github.com/KaiJewson/toon)
 //! [![Crates.io](https://img.shields.io/crates/v/toon)](https://crates.io/crates/toon)
-//! [![Github](https://img.shields.io/badge/-github-24292e)](https://github.com/KaiJewson/toon)
-//! [![docs.rs](https://img.shields.io/badge/-docs.rs-informational)](https://docs.rs/toon)
+//! [![docs.rs](https://docs.rs/toon/badge.svg)](https://docs.rs/toon)
 //!
 //! A simple, declarative, and modular TUI library.
 //!

@@ -35,7 +35,7 @@ tasks at once.
 
 ## Cursors
 
-Crossterm does support using the terminal's native cursor at all. Tui allows you to control the
+Cursive does not support using the terminal's native cursor at all. Tui allows you to control the
 cursor globally from your `Terminal` instance, but it only supports changing its visibility and its
 position. In Toon every element can control the visibility, position, shape and blinking state of
 its cursor which will often forward up to the native terminal cursor, but custom cursors can also be
@@ -49,7 +49,7 @@ intercept and use it.
 
 ## Output
 
-Crossterm and tui both use a concrete struct for outputs, called `Printer` and `Buffer`, and they
+Crusive and tui both use a concrete struct for outputs, called `Printer` and `Buffer`, and they
 allow you to write to the terminal. Toon on the other hand uses a trait for this purpose, the
 `Output` trait. This allows for features like filters to be efficiently implemented, as you don't
 have to create a whole new buffer just to later filter its contents and write it to the actual

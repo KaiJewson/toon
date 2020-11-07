@@ -208,10 +208,7 @@ impl Dev {
     fn bottom_panel(&self) -> impl Element<Event = EventKind> + '_ {
         let contents = crate::column(
             crate::Static,
-            self.captured
-                .lines()
-                .map(crate::span)
-                .collect::<Vec<_>>(),
+            self.captured.lines().map(crate::span).collect::<Vec<_>>(),
         )
         .scroll_y(crate::ScrollOffset::End(0));
 
