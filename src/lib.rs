@@ -54,7 +54,10 @@
 //! [Crossterm](https://docs.rs/toon/0.1/toon/backend/struct.Crossterm.html) backend.
 //! - `dev`: Enable developer tools.
 //! - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
-//! implements `Element`, `Output` and `Collection` for `Either`.
+//! implements [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.html),
+//! [`Output`](https://docs.rs/toon/0.1/toon/output/trait.Output.html) and
+//! [`Collection`](https://docs.rs/toon/0.1/toon/elements/containers/trait.Collection.html) for
+//! `Either`.
 #![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 #![warn(
     clippy::pedantic,
@@ -130,7 +133,7 @@ pub use vec2::Vec2;
 
 /// A composable part of the UI.
 ///
-/// Elements are cheap, immutable, borrowed and short-lived. They usually implement `Copy`.
+/// Elements are cheap, immutable, borrowed and short-lived. They usually implement [`Copy`].
 ///
 /// You shouldn't generally have to implement this trait yourself unless you're doing something
 /// really niche. Instead, combine elements from the [`elements`] module.

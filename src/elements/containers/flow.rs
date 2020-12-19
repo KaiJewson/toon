@@ -16,7 +16,7 @@ use self::private::Layout;
 pub struct Flow {
     /// The direction the flow container is biased towards.
     ///
-    /// If `None`, the container will evenly distribute space among its flexible elements, even if
+    /// If [`None`], the container will evenly distribute space among its flexible elements, even if
     /// it results in there being extra space at the end. Otherwise, it will fill that extra space
     /// by unevenly giving elements at one end more space.
     pub bias: Option<End>,

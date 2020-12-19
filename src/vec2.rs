@@ -82,7 +82,8 @@ impl<T> Vec2<T> {
         }
     }
 
-    /// Zips the two vectors with a function. This is like a `zip` followed by a `map`.
+    /// Zips the two vectors with a function. This is like a [`zip`](Self::zip) followed by a
+    /// [`map`](Self::map).
     pub fn zip_with<U, R>(self, other: Vec2<U>, mut f: impl FnMut(T, U) -> R) -> Vec2<R> {
         Vec2 {
             x: f(self.x, other.x),
@@ -90,7 +91,8 @@ impl<T> Vec2<T> {
         }
     }
 
-    /// Zips the three vectors with a function. This is like a `zip_3` followed by a `map`.
+    /// Zips the three vectors with a function. This is like a [`zip_3`](Self::zip_3) followed by a
+    /// [`map`](Self::map).
     pub fn zip_3_with<U, V, R>(
         self,
         second: Vec2<U>,
@@ -117,7 +119,7 @@ impl<T> Vec2<T> {
 }
 
 impl<T> Vec2<Option<T>> {
-    /// Get a vector of the two components if they are both `Some`.
+    /// Get a vector of the two components if they are both [`Some`].
     #[must_use]
     pub fn both_some(self) -> Option<Vec2<T>> {
         Some(Vec2 {

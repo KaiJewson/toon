@@ -418,9 +418,10 @@ pub enum CellKind<'a> {
         /// of the characters will be zero columns wide. This will contain no control characters.
         contents: &'a str,
         /// Whether the cell is double-width (that is, the width of the first character of
-        /// `contents` as well as all of `contents` is 2).
+        /// [`contents`](Self::Char::contents) as well as all of [`contents`](Self::Char::contents)
+        /// is 2).
         ///
-        /// If a cell is double width the next cell will be a `Continuation`.
+        /// If a cell is double width the next cell will be a [`Continuation`](Self::Continuation).
         double: bool,
         /// The style of the cell.
         style: Style,

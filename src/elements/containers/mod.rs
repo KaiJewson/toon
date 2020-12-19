@@ -276,7 +276,8 @@ pub struct Container1D<E, L> {
     /// receive key inputs.
     pub broadcast_keys: bool,
     /// The index of the focused element of the container. This element will set the title and
-    /// cursor of the container, and will receive all inputs if `broadcast_keys` is not set.
+    /// cursor of the container, and will receive all inputs if
+    /// [`broadcast_keys`](Self::broadcast_keys) is not set.
     ///
     /// It is not an error if this element does not exist.
     pub focused: Option<usize>,
@@ -428,7 +429,7 @@ pub enum Axis {
 }
 
 impl Axis {
-    /// Construct a `Vec2` from the main value and the cross value.
+    /// Construct a [`Vec2`] from the main value and the cross value.
     #[must_use]
     pub const fn vec<T>(self, main: T, cross: T) -> Vec2<T> {
         match self {
@@ -437,13 +438,13 @@ impl Axis {
         }
     }
 
-    /// Get the main axis of the `Vec2`.
+    /// Get the main axis of the [`Vec2`].
     #[must_use]
     pub fn main_of<T>(self, v: Vec2<T>) -> T {
         self.main_cross_of(v).0
     }
 
-    /// Get the main and cross axes of the `Vec2`.
+    /// Get the main and cross axes of the [`Vec2`].
     #[must_use]
     pub fn main_cross_of<T>(self, v: Vec2<T>) -> (T, T) {
         match self {

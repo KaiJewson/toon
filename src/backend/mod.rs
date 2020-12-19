@@ -47,8 +47,8 @@ pub trait Backend {
 
 /// A backend bound to a TTY.
 ///
-/// Operations should be buffered and `flush` should flush them. Since `Tty` uses a `BufWriter`
-/// internally this will often not have to be done manually.
+/// Operations should be buffered and [`flush`](Self::flush) should flush them. Since [`Tty`] uses a
+/// [`BufWriter`] internally this will often not have to be done manually.
 #[allow(clippy::missing_errors_doc)]
 pub trait Bound: for<'a> ReadEvents<'a, EventError = <Self as Bound>::Error> + Sized {
     /// Error executing an operation.
@@ -123,7 +123,7 @@ pub trait Bound: for<'a> ReadEvents<'a, EventError = <Self as Bound>::Error> + S
 
 /// Backends which can read events.
 pub trait ReadEvents<'a> {
-    /// This error type must be the same type as used in `Bound`.
+    /// This error type must be the same type as used in [`Bound`].
     type EventError;
 
     /// The future that reads the next input value.
@@ -174,8 +174,8 @@ pub enum TerminalMouseKind {
 
 /// A type which backends use to perform I/O.
 ///
-/// Internally it uses a `BufWriter` so all write calls are buffered. If you are using both the
-/// `Write` impl and the `AsRawFd`/`AsRawHandle` impl take care to flush it, otherwise you'll get
+/// Internally it uses a [`BufWriter`] so all write calls are buffered. If you are using both the
+/// [`Write`] impl and the `AsRawFd`/`AsRawHandle` impl take care to flush it, otherwise you'll get
 /// inconsistencies.
 #[derive(Debug)]
 pub struct Tty {

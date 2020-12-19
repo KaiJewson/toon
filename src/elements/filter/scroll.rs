@@ -17,7 +17,7 @@ use super::Filter;
 /// scroll bar.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Scroll {
-    /// How much to scroll by. If `None`, the element will not scroll in that dimension.
+    /// How much to scroll by. If [`None`], the element will not scroll in that dimension.
     pub by: Vec2<Option<ScrollOffset>>,
 }
 

@@ -251,7 +251,7 @@ impl BitOrAssign for Modifiers {
 ///
 /// This is implemented for:
 /// - Functions that take an input and return a boolean.
-/// - [`Input`], [`KeyPress`], [`Mouse`] and `char` which just perform an equality check.
+/// - [`Input`], [`KeyPress`], [`Mouse`] and [`char`] which just perform an equality check.
 /// - [`Key`], which does not allow any modifiers to be held down.
 /// - [`MouseKind`], which can occur at any position without modifiers.
 /// - Tuples, which detect any one of the inputs occurring.
@@ -338,21 +338,21 @@ impl_input_pattern_for_tuples! {
 ///
 /// A pattern that matches mouse clicks with alt held down:
 ///
-/// ```rust
+/// ```
 /// toon::input!(Alt + Mouse(Press))
 /// # ;
 /// ```
 ///
 /// A pattern that matches a back tab:
 ///
-/// ```rust
+/// ```
 /// toon::input!(Key(Tab) + Shift)
 /// # ;
 /// ```
 ///
 /// A pattern that matches the `a` key held without anything else:
 ///
-/// ```rust
+/// ```
 /// toon::input!(Key(a) + None);
 /// # ;
 /// ```
@@ -395,7 +395,7 @@ impl_input_pattern_for_tuples! {
 /// ```
 ///
 /// The expression given in the `where` part of `key-pattern` and `mouse-pattern` is a function
-/// that takes a `KeyPress` or `Mouse` and returns a `bool`.
+/// that takes a [`KeyPress`] or [`Mouse`] and returns a [`bool`].
 ///
 /// Note that the `!` operator might not work how you expect; `!Control + Key(f)` is equal to
 /// `!(Control + Key(f))` not `(!Control) + Key(f)`.

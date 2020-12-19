@@ -5,7 +5,7 @@ use crate::{Attributes, Color, Element, Events, Input, Output, Style, Vec2};
 /// A block of a single color.
 #[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct Block<Event> {
-    /// The color of the block. If set to `None` this block will be transparent.
+    /// The color of the block. If set to [`None`] this block will be transparent.
     pub color: Option<Color>,
     event: PhantomData<Event>,
 }

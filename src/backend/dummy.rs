@@ -62,9 +62,9 @@ impl Dummy {
     }
 }
 
-/// An operation on a terminal backend, stored by `Dummy`.
+/// An operation on a terminal backend, stored by [`Dummy`].
 ///
-/// Each variant roughly corresponds to a method on the `Backend` trait.
+/// Each variant roughly corresponds to a method on the [`Backend`] trait.
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum Operation {

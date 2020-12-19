@@ -14,7 +14,7 @@ pub struct Style {
 impl Style {
     /// Get the default style.
     ///
-    /// This is identical to the implementation of `Default`, but it can be called in `const`
+    /// This is identical to the implementation of [`Default`], but it can be called in `const`
     /// contexts.
     #[must_use]
     pub const fn default() -> Self {
@@ -180,7 +180,7 @@ impl Color {
     /// Create a color from an ANSI value.
     ///
     /// If the value is < 16 it will be mapped to the named color variants, otherwise it will be an
-    /// `AnsiColor`.
+    /// [`AnsiColor`].
     #[must_use]
     pub fn new_ansi(value: u8) -> Self {
         match value {

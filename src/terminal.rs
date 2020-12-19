@@ -22,7 +22,7 @@ static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 /// [`take_captured`](Self::take_captured) method.
 #[derive(Debug)]
 pub struct Terminal<B: Backend> {
-    /// Only `None` during destruction of the type.
+    /// Only [`None`] during destruction of the type.
     backend: Option<B::Bound>,
     /// The previous title of the terminal.
     title: String,
@@ -61,7 +61,7 @@ impl<B: Backend> Terminal<B> {
         let (tty, captured) = if B::is_dummy() {
             (Tty::dummy(), None)
         } else {
-            let (tty, captured) = Tty::new().map_err(Error::Io)?;
+            let (tty, captured) = Tty::new().map_err(Error::Stdio)?;
             (tty, Some(captured))
         };
 
@@ -299,7 +299,7 @@ impl<B: Backend> Terminal<B> {
     /// The terminal will no longer print all captured data to the standard output when the program
     /// terminates.
     ///
-    /// This will return `None` if the backend is a dummy backend or the captured stdio has already
+    /// This will return [`None`] if the backend is a dummy backend or the captured stdio has already
     /// been taken.
     pub fn take_captured(&mut self) -> Option<Captured> {
         self.captured.take().map(Captured)
@@ -320,11 +320,11 @@ impl<B: Backend> Terminal<B> {
 
     fn cleanup_inner(&mut self) -> Result<(), Error<B::Error>> {
         if let Some(backend) = self.backend.take() {
-            backend.reset()?.cleanup().map_err(Error::Io)?;
+            backend.reset()?.cleanup().map_err(Error::Stdio)?;
         }
 
         if let Some(mut captured) = self.captured.take() {
-            io::copy(&mut captured, &mut io::stdout()).map_err(Error::Io)?;
+            io::copy(&mut captured, &mut io::stdout()).map_err(Error::Stdio)?;
         }
 
         Ok(())
@@ -347,8 +347,8 @@ impl<B: Backend> Drop for Terminal<B> {
 pub enum Error<B> {
     /// An error in the backend.
     Backend(B),
-    /// An I/O error.
-    Io(io::Error),
+    /// An error overriding the standard I/O streams.
+    Stdio(io::Error),
 }
 
 impl<B> From<B> for Error<B> {
@@ -360,7 +360,7 @@ impl<B: Display> Display for Error<B> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Backend(e) => e.fmt(f),
-            Self::Io(e) => e.fmt(f),
+            Self::Stdio(e) => e.fmt(f),
         }
     }
 }
@@ -368,25 +368,25 @@ impl<B: StdError + 'static> StdError for Error<B> {
     fn source(&self) -> Option<&(dyn StdError + 'static)> {
         match self {
             Self::Backend(e) => Some(e),
-            Self::Io(e) => Some(e),
+            Self::Stdio(e) => Some(e),
         }
     }
 }
 
 /// Standard output and standard error that has been captured by Toon.
 ///
-/// Note that this is a synchronous reader, and `async-io` does not have the ability to make it
-/// asynchronous on Windows (as wepoll does not support pipes). So if you want to use it
-/// asynchronously you'll have to wrap it in an
+/// Note that this is a synchronous reader. It is also not able to be made asynchronous by
+/// [`async-io`](https://crates.io/crates/async-io) on Windows (as wepoll does not support pipes).
+/// So if you want to use it asynchronously and cross-platform you'll have to wrap it in an
 /// [`Unblock`](https://docs.rs/blocking/1/blocking/struct.Unblock.html) or similar type.
 #[derive(Debug)]
 pub struct Captured(PipeReader);
 
 impl Captured {
     /// Put this reader into non-blocking mode, where a blocking read will return
-    /// `io::ErrorKind::WouldBlock` instead of blocking.
+    /// [`io::ErrorKind::WouldBlock`] instead of blocking.
     ///
-    /// This should not be used to implement asynchronous I/O on a `Captured`.
+    /// This should not be used to implement asynchronous I/O on a [`Captured`].
     #[allow(clippy::missing_errors_doc)]
     pub fn set_nonblocking(&self) -> io::Result<()> {
         #[cfg(unix)]

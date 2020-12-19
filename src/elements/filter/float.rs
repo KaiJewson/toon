@@ -8,7 +8,7 @@ use super::{Alignment, Filter};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Float {
-    /// The horizontal and vertical alignment of the floating element. If `None`, the element will
+    /// The horizontal and vertical alignment of the floating element. If [`None`], the element will
     /// not float in that axis.
     pub align: Vec2<Option<Alignment>>,
 }

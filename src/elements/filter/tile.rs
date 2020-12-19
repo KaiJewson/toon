@@ -10,7 +10,7 @@ use super::Filter;
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Tile {
-    /// The offsets at which the element is tiled, `None` if the element is not tiled in this axis.
+    /// The offsets at which the element is tiled, [`None`] if the element is not tiled in this axis.
     pub offset: Vec2<Option<u16>>,
 }
 

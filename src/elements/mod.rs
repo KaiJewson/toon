@@ -195,7 +195,7 @@ pub trait ElementExt: Element + Sized {
     ///
     /// Prevent all inputs from reaching an element:
     ///
-    /// ```rust
+    /// ```
     /// use toon::ElementExt;
     ///
     /// # let element = toon::empty::<()>();
@@ -204,7 +204,7 @@ pub trait ElementExt: Element + Sized {
     ///
     /// Only give the element mouse inputs:
     ///
-    /// ```rust
+    /// ```
     /// # use toon::ElementExt;
     /// # let element = toon::empty::<()>();
     /// let element = element.mask_inputs(toon::input!(Mouse));

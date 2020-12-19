@@ -54,6 +54,9 @@ Toon offers the following features, none of which are enabled by default:
 [Crossterm](https://docs.rs/toon/0.1/toon/backend/struct.Crossterm.html) backend.
 - `dev`: Enable developer tools.
 - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
-implements `Element`, `Output` and `Collection` for `Either`.
+implements [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.html),
+[`Output`](https://docs.rs/toon/0.1/toon/output/trait.Output.html) and
+[`Collection`](https://docs.rs/toon/0.1/toon/elements/containers/trait.Collection.html) for
+`Either`.
 
 License: MIT OR Apache-2.0

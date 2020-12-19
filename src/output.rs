@@ -16,7 +16,7 @@ pub trait Output {
 
     /// Write a single character to the output at a zero-indexed position.
     ///
-    /// Failures are intentionally ignored and not detectable - the `Output`'s current state is
+    /// Failures are intentionally ignored and not detectable - the [`Output`]'s current state is
     /// completely opaque.
     ///
     /// - Drawing a control character will fail.
@@ -85,7 +85,7 @@ impl<L: Output, R: Output> Output for either_crate::Either<L, R> {
 /// This trait exists because [`Output`] needs to be dyn-safe, but it is convenient to have methods
 /// that use generics.
 pub trait Ext: Output {
-    /// Write a type implementing `Display` to the specified position in the output.
+    /// Write a type implementing [`Display`] to the specified position in the output.
     ///
     /// If it overflows the width of the terminal it will be cut off. Control characters will be
     /// ignored.
@@ -119,7 +119,7 @@ pub trait Ext: Output {
     /// You can create an area that draws beyond the bounds of this output, in which case it will
     /// all be ignored.
     ///
-    /// The `top_left` parameter is conceptually an `i17`, but that doesn't exist so we use `i32`.
+    /// The `top_left` parameter is conceptually an `i17`, but that doesn't exist so we use [`i32`].
     #[must_use]
     fn area(self, top_left: impl Into<Vec2<i32>>, size: impl Into<Vec2<u16>>) -> Area<Self>
     where

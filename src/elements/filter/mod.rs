@@ -32,7 +32,8 @@ mod title;
 pub trait Filter<Event> {
     /// Draw the filtered element to the output.
     ///
-    /// By default this method forwards to `write_char` and `set_cursor`.
+    /// By default this method forwards to [`write_char`](Self::write_char) and
+    /// [`set_cursor`](Self::set_cursor).
     fn draw<E: Element>(&self, element: E, output: &mut dyn Output) {
         struct DrawFilterOutput<'a, F: ?Sized, Event> {
             inner: &'a mut dyn Output,
@@ -60,8 +61,8 @@ pub trait Filter<Event> {
 
     /// Write a single filtered character to the output.
     ///
-    /// By default this method filters the parameters with `filter_char` and `filter_style` and then
-    /// writes it to the output.
+    /// By default this method filters the parameters with [`filter_char`](Self::filter_char) and
+    /// [`filter_style`](Self::filter_style) and then writes it to the output.
     fn write_char(&self, base: &mut dyn Output, pos: Vec2<u16>, c: char, style: Style) {
         base.write_char(pos, self.filter_char(c), self.filter_style(style));
     }
@@ -82,8 +83,8 @@ pub trait Filter<Event> {
 
     /// Set the filtered cursor of the output.
     ///
-    /// By default this filters the cursor with `filter_cursor` and then sets it to the output's
-    /// cursor.
+    /// By default this filters the cursor with [`filter_cursor`](Self::filter_cursor) and then sets
+    /// it to the output's cursor.
     fn set_cursor(&self, base: &mut dyn Output, cursor: Option<Cursor>) {
         base.set_cursor(self.filter_cursor(cursor))
     }
@@ -109,21 +110,21 @@ pub trait Filter<Event> {
 
     /// Get the inclusive range of widths the element can take up given an optional fixed height.
     ///
-    /// By default this calls the element's `width` method.
+    /// By default this calls the element's [`width`](Element::width) method.
     fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
         element.width(height)
     }
 
     /// Get the inclusive range of heights the element can take up given an optional fixed width.
     ///
-    /// By default this calls the element's `height` method.
+    /// By default this calls the element's [`height`](Element::height) method.
     fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
         element.height(width)
     }
 
     /// React to the input and output events if necessary.
     ///
-    /// By default this calls `filter_input` and passes the element that.
+    /// By default this calls [`filter_input`](Self::filter_input) and passes the element that.
     fn handle<E: Element<Event = Event>>(
         &self,
         element: E,
@@ -135,7 +136,8 @@ pub trait Filter<Event> {
 
     /// Filter inputs given to the wrapped element.
     ///
-    /// By default this forwards to `filter_key_press` and `filter_mouse`.
+    /// By default this forwards to [`filter_key_press`](Self::filter_key_press) and
+    /// [`filter_mouse`](Self::filter_mouse).
     fn filter_input(&self, input: Input) -> Input {
         match input {
             Input::Key(key) => Input::Key(self.filter_key_press(key)),
