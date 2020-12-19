@@ -40,7 +40,7 @@ pub trait Collection<'a> {
     type Event: 'a;
 
     /// An iterator over the collection.
-    type Iter: Iterator<Item = &'a dyn Element<Event = Self::Event>> + DoubleEndedIterator + 'a;
+    type Iter: Iterator<Item = &'a dyn Element<Event = Self::Event>> + DoubleEndedIterator;
 
     /// Iterate over the collection.
     fn iter(&'a self) -> Self::Iter;
@@ -211,7 +211,7 @@ pub trait Layout1D<'a, C: Collection<'a>> {
     /// The layout of elements.
     ///
     /// This is an iterator over all the elements and where they are.
-    type Layout: Iterator<Item = InnerElement<'a, <C as Collection<'a>>::Event>> + 'a;
+    type Layout: Iterator<Item = InnerElement<'a, <C as Collection<'a>>::Event>>;
 
     /// Get the layout of the elements in the collection, with an optional fixed cross axis size.
     fn layout(

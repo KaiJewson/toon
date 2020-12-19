@@ -236,11 +236,12 @@ type EventResult = Result<TerminalEvent, Infallible>;
 
 impl<'a> ReadEvents<'a> for Dummy {
     type EventError = Infallible;
-    type EventFuture = future::Either<future::Ready<EventResult>, future::Pending<EventResult>>;
+    type EventFuture =
+        future::Either<std::future::Ready<EventResult>, std::future::Pending<EventResult>>;
 
     fn read_event(&'a mut self) -> Self::EventFuture {
         self.events.pop_front().map_or_else(
-            || future::Either::Right(future::pending()),
+            || future::Either::Right(std::future::pending()),
             |event| {
                 if let TerminalEvent::Resize(size) = event {
                     self.buffer.grid.resize_width(size.x);
@@ -248,7 +249,7 @@ impl<'a> ReadEvents<'a> for Dummy {
                         .grid
                         .resize_height_with_anchor(size.x, self.cursor_pos.y);
                 }
-                future::Either::Left(future::ready(Ok(event)))
+                future::Either::Left(std::future::ready(Ok(event)))
             },
         )
     }

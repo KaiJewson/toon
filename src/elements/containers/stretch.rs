@@ -103,7 +103,7 @@ mod private {
 
 impl<'a, I, Event: 'a> Iterator for Layout<I>
 where
-    I: Iterator<Item = &'a dyn Element<Event = Event>> + DoubleEndedIterator + 'a,
+    I: Iterator<Item = &'a dyn Element<Event = Event>> + DoubleEndedIterator,
 {
     type Item = InnerElement<'a, Event>;
 

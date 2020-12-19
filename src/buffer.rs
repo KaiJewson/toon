@@ -1,4 +1,9 @@
 //! Data structures representing terminals.
+//!
+//! Toon uses [`unicode_width`] to get the number of cells a character takes up in a terminal. This
+//! isn't a perfect solution - for example, 👨‍👨‍👧‍👦, a family emoji, cannot be
+//! displayed in Toon as [`unicode_width`] measures it as 8 columns wide. However, it is the same as
+//! what most terminals do and is simple to understand and implement.
 
 use std::cmp::Ordering;
 use std::iter;

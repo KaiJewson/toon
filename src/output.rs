@@ -81,6 +81,9 @@ impl<L: Output, R: Output> Output for either_crate::Either<L, R> {
 /// ```
 /// use toon::output::Ext as _;
 /// ```
+///
+/// This trait exists because [`Output`] needs to be dyn-safe, but it is convenient to have methods
+/// that use generics.
 pub trait Ext: Output {
     /// Write a type implementing `Display` to the specified position in the output.
     ///
@@ -118,14 +121,14 @@ pub trait Ext: Output {
     ///
     /// The `top_left` parameter is conceptually an `i17`, but that doesn't exist so we use `i32`.
     #[must_use]
-    fn area(self, top_left: Vec2<i32>, size: Vec2<u16>) -> Area<Self>
+    fn area(self, top_left: impl Into<Vec2<i32>>, size: impl Into<Vec2<u16>>) -> Area<Self>
     where
         Self: Sized,
     {
         Area {
             inner: self,
-            top_left,
-            size,
+            top_left: top_left.into(),
+            size: size.into(),
         }
     }
 

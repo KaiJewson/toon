@@ -4,10 +4,10 @@
 compile_error!("Dev mode currently requires `either` feature to be active.");
 
 use std::cmp::max;
+use std::future;
 
 use either_crate::Either;
 use futures_codec::Bytes;
-use futures_util::future;
 use futures_util::stream::{Stream, StreamExt};
 
 use crate::{

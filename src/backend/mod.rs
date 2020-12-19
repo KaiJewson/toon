@@ -129,7 +129,7 @@ pub trait ReadEvents<'a> {
     /// The future that reads the next input value.
     ///
     /// Dropping this future must stop reading input.
-    type EventFuture: Future<Output = Result<TerminalEvent, Self::EventError>> + 'a;
+    type EventFuture: Future<Output = Result<TerminalEvent, Self::EventError>>;
 
     /// Read the next event from the terminal.
     fn read_event(&'a mut self) -> Self::EventFuture;
