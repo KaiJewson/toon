@@ -3,7 +3,7 @@ use crate::{Element, Events, Input, Output};
 use super::{combine_cross_axes, Collection};
 
 /// A simple stack of elements, where each one is drawn on top of one another. Created by the
-/// [`stack`](fn.stack.html) function.
+/// [`stack`] function.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Stack<E> {
@@ -52,7 +52,7 @@ where
     }
 }
 
-/// Create a [`Stack`](struct.Stack.html) of elements.
+/// Create a [`Stack`] of elements.
 ///
 /// By default inputs will not be broadcast to all elements.
 ///

@@ -45,7 +45,7 @@ impl Output for Buffer {
 
 /// The grid of characters on a terminal.
 ///
-/// A grid is a list of [`Line`](struct.Line.html)s that are all the same length.
+/// A grid is a list of [`Line`]s that are all the same length.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Grid {
     width: u16,
@@ -159,7 +159,7 @@ impl Output for Grid {
 
 /// A line of cells in a terminal.
 ///
-/// A line is a list of [`Cell`](enum.Cell.html)s with the guarantee that each cell is 1 or 2
+/// A line is a list of [`Cell`]s with the guarantee that each cell is 1 or 2
 /// columns wide and that double-width cells will be followed by continuation cells.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Line {

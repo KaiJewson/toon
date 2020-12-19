@@ -6,11 +6,11 @@ use crate::{Element, Events, Input, Mouse, Vec2};
 use super::Filter;
 
 /// A filter that scrolls an element, typically used through the
-/// [`scroll_x`](../trait.ElementExt.html#method.scroll_x),
-/// [`scroll_y`](../trait.ElementExt.html#method.scroll_y) and
-/// [`scroll`](../trait.ElementExt.html#method.scroll) methods.
+/// [`scroll_x`](crate::ElementExt::scroll_x),
+/// [`scroll_y`](crate::ElementExt::scroll_y) and
+/// [`scroll`](crate::ElementExt::scroll) methods.
 ///
-/// This is the opposite of [`Float`](struct.Float.html); instead of drawing the element to smaller
+/// This is the opposite of [`Float`](super::Float); instead of drawing the element to smaller
 /// viewport than the output it draws the element to a larger viewport.
 ///
 /// Note that this is a very minimal container: it doesn't have scroll wheel support or draw a

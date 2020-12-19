@@ -4,7 +4,7 @@ use super::{Axis, Collection, InnerElement, Layout1D};
 
 use self::private::Layout;
 
-/// A static [`Layout1D`](trait.Layout1D.html).
+/// A static [`Layout1D`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Static;
 

@@ -140,8 +140,8 @@ pub trait Ext: Output {
 }
 impl<T: Output + ?Sized> Ext for T {}
 
-/// An [`Output`](trait.Output.html) that draws to an area of another output, created by the
-/// [`area`](trait.Ext.html#method.area) method.
+/// An [`Output`] that draws to an area of another output, created by the [`area`](Ext::area)
+/// method.
 #[derive(Debug)]
 #[non_exhaustive]
 pub struct Area<O> {
@@ -191,8 +191,8 @@ impl<O: Output> Output for Area<O> {
     }
 }
 
-/// An [`Output`](trait.Output.html) that calls a callback when its cursor is set, created by the
-/// [`on_set_cursor`](trait.Ext.html#method.on_set_cursor) function.
+/// An [`Output`] that calls a callback when its cursor is set, created by the
+/// [`on_set_cursor`](Ext::on_set_cursor) function.
 #[derive(Debug)]
 pub struct OnSetCursor<O, F> {
     /// The inner output.

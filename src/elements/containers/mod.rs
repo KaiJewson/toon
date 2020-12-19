@@ -2,16 +2,14 @@
 //!
 //! # Which 1D layout to use?
 //!
-//! Toon's 1D container, [`Container1D`](struct.Container1D), can use multiple
-//! [layouts](trait.Layout1D.html) to draw its elements.
+//! Toon's 1D container, [`Container1D`], can use multiple [layouts](Layout1D) to draw its elements.
 //!
-//! - [`Static`](struct.Static.html) is the simplest and fastest layout. It gives each element the
-//! minimum space it needs, and any extra space is left blank.
-//! - [`Stretch`](struct.Stretch.html) is more advanced and also fast. It gives each element except
-//! one the minimum space it needs, and then gives all the rest of the space to the one element.
-//! - [`Flow`](struct.Flow.html) is the most advanced and the slowest. It gives each element the
-//! minimum space it needs, and then distributes all remaining space evenly among elements that
-//! support it.
+//! - [`Static`] is the simplest and fastest layout. It gives each element the minimum space it
+//! needs, and any extra space is left blank.
+//! - [`Stretch`] is more advanced and also fast. It gives each element except one the minimum space
+//! it needs, and then gives all the rest of the space to the one element.
+//! - [`Flow`] is the most advanced and the slowest. It gives each element the minimum space it
+//! needs, and then distributes all remaining space evenly among elements that support it.
 
 use std::cmp::max;
 use std::fmt::{self, Debug, Formatter};
@@ -240,7 +238,7 @@ pub trait Layout1D<'a, C: Collection<'a>> {
     }
 }
 
-/// An element arranged by a [`Layout1D`](trait.Layout1D.html).
+/// An element arranged by a [`Layout1D`].
 #[derive(Clone, Copy)]
 pub struct InnerElement<'a, Event> {
     /// The element itself.
@@ -263,9 +261,8 @@ impl<'a, Event> Debug for InnerElement<'a, Event> {
     }
 }
 
-/// A 1-dimensional container of elements. It draws a [`Collection`](trait.Collection.html) with a
-/// [`Layout1D`](trait.Layout1D.html), and is created by the [`column`](fn.column.html) and
-/// [`row`](fn.row.html) functions.
+/// A 1-dimensional container of elements. It draws a [`Collection`] with a [`Layout1D`], and is
+/// created by the [`column()`] and [`row()`] functions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Container1D<E, L> {
@@ -467,7 +464,7 @@ impl Axis {
 
 /// Create a row of elements with the specified layout.
 ///
-/// This takes a [`Layout1D`](trait.Layout1D) and a [`Collection`](trait.Collection.html).
+/// This takes a [`Layout1D`] and a [`Collection`].
 ///
 /// By default keys inputs will not be broadcast to all elements and there will be no focused
 /// element.
@@ -488,7 +485,7 @@ where
 
 /// Create a column of elements with the specified layout.
 ///
-/// This takes a [`Layout1D`](trait.Layout1D) and a [`Collection`](trait.Collection.html).
+/// This takes a [`Layout1D`] and a [`Collection`].
 ///
 /// By default keys inputs will not be broadcast to all elements and there will be no focused
 /// element.

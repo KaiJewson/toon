@@ -1,7 +1,7 @@
 //! Common elements for building user interfaces.
 //!
-//! This module aims to cover most use cases of elements so you don't have to implement
-//! [`Element`](../trait.Element.html) yourself.
+//! This module aims to cover most use cases of elements so you don't have to implement [`Element`]
+//! yourself.
 
 use std::fmt::Display;
 
@@ -18,7 +18,7 @@ pub use span::*;
 
 pub mod containers;
 #[cfg(feature = "dev")]
-#[cfg_attr(feature = "nightly", doc(cfg(feature = "dev")))]
+#[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "dev")))]
 pub mod dev;
 pub mod filter;
 
@@ -30,7 +30,7 @@ mod span;
 pub trait ElementExt: Element + Sized {
     /// Filter this element using the given filter.
     ///
-    /// This is a shortcut method for [`Filtered::new`](filter/struct.Filtered.html#method.new).
+    /// This is a shortcut method for [`Filtered::new`](filter::Filtered::new).
     #[must_use]
     fn filter<F: Filter<Self::Event>>(self, filter: F) -> Filtered<Self, F> {
         Filtered::new(self, filter)

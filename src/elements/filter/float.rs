@@ -4,7 +4,7 @@ use crate::{Element, Events, Input, Mouse, Vec2};
 use super::{Alignment, Filter};
 
 /// A filter that makes an element float, typically used through the
-/// [`float`](../trait.ElementExt.html#method.float) method.
+/// [`float`](crate::ElementExt::float) method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Float {

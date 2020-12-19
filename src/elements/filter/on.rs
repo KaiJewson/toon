@@ -3,8 +3,7 @@ use crate::{input, Element, Events, Input};
 use super::Filter;
 
 /// A filter that triggers an event when an input occurs, typically used through the
-/// [`on`](../trait.ElementExt.html#method.on) and
-/// [`on_passive`](../trait.ElementExt.html#method.on_passive) methods.
+/// [`on`](crate::ElementExt::on) and [`on_passive`](crate::ElementExt::on_passive) methods.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct On<I, F> {

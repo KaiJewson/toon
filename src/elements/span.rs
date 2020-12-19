@@ -8,7 +8,7 @@ use crate::{
     Element, Events, Input, Style,
 };
 
-/// A span of text, created by the [`span`](fn.span.html) function.
+/// A span of text, created by the [`span`] function.
 ///
 /// # Examples
 ///
@@ -69,9 +69,8 @@ impl<T: Display, Event> Element for Span<T, Event> {
 /// Create a span of text.
 ///
 /// It takes any type that implements `Display`. If your `Display` impl is costly, you may want to
-/// convert it to a string beforehand. Otherwise you will probably want to use
-/// [`format_args!`](https://doc.rust-lang.org/stable/core/macro.format_args.html) to generate the
-/// type since it avoids allocation.
+/// convert it to a string beforehand. Otherwise you will probably want to use [`format_args!`] to
+/// generate the type since it avoids allocation.
 ///
 /// # Examples
 ///

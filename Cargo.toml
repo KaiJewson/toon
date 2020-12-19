@@ -44,8 +44,7 @@ crossterm = ["crossterm_crate"]
 dev = ["blocking", "futures_codec"]
 either = ["either_crate"]
 
-# Used for #[doc(cfg)]
-nightly = []
+doc_cfg = []
 
 [[example]]
 name = "hello_world"

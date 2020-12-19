@@ -6,10 +6,10 @@ use super::{Axis, Collection, InnerElement, Layout1D};
 
 use self::private::Layout;
 
-/// A dynamic element [`Layout1D`](trait.Layout1D.html) where there is one flexible and many fixed
-/// sized elements, created by the [`stretch`](fn.stretch.html) function.
+/// A dynamic element [`Layout1D`] where there is one flexible and many fixed sized elements,
+/// created by the [`stretch`] function.
 ///
-/// This is similar in purpose to [`Flow`](struct.Flow.html), but less general purpose and
+/// This is similar in purpose to [`Flow`](super::Flow), but less general purpose and
 /// implemented much more efficiently.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
@@ -169,7 +169,7 @@ where
     }
 }
 
-/// Create a new [`Stretch`](struct.Stretch.html) layout.
+/// Create a new [`Stretch`] layout.
 #[must_use]
 pub fn stretch(stretched: usize) -> Stretch {
     Stretch { stretched }

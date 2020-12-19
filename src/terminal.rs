@@ -12,15 +12,14 @@ use crate::{Color, Element, Input, Intensity, Mouse, MouseButton, MouseKind, Out
 
 static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
 
-/// A terminal which can draw [elements](trait.Element.html) to a
-/// [backend](backend/trait.Backend.html).
+/// A terminal which can draw [elements](Element) to a [backend](Backend).
 ///
 /// For backends that aren't dummies, only one terminal may exist at once; attempting to
 /// create more than one at once will panic.
 ///
 /// Terminals automatically capture all standard output and standard error while they are alive,
 /// and print it when they are dropped. However, you can also take ownership of it via the
-/// [`take_captured`](#method.take_captured) method.
+/// [`take_captured`](Self::take_captured) method.
 #[derive(Debug)]
 pub struct Terminal<B: Backend> {
     /// Only `None` during destruction of the type.

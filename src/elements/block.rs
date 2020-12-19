@@ -11,8 +11,8 @@ pub struct Block<Event> {
 }
 
 impl<Event> Block<Event> {
-    /// Create a new block with the given color. Note that use of the [`clear`](fn.clear.html) and
-    /// [`fill`](fn.fill.html) functions is preferred.
+    /// Create a new block with the given color. Note that use of the [`empty`] and [`fill`]
+    /// functions is preferred.
     #[must_use]
     pub const fn new(color: Option<Color>) -> Self {
         Self {

@@ -5,9 +5,8 @@ use crate::{Element, Events, Input, Mouse, Vec2};
 
 use super::Filter;
 
-/// A filter that tiles an element, typically used through the
-/// [`tile`](../trait.ElementExt.html#method.tile) and
-/// [`tile_with_offset`](../trait.ElementExt.html#method.tile_with_offset) methods.
+/// A filter that tiles an element, typically used through the [`tile`](crate::ElementExt::tile),
+/// [`tile_x`](crate::ElementExt::tile_x) and [`tile_y`](crate::ElementExt::tile_y) methods.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Tile {

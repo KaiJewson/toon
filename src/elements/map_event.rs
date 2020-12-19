@@ -1,12 +1,12 @@
 use std::fmt;
 
-use crate::events::{Events, Ext as _};
+use crate::events::Events;
 use crate::{Element, Input, Output};
 
 /// An element that maps the event type of an element, created by the
-/// [`map_event`](trait.ElementExt.html#method.map_event) function.
+/// [`map_event`](super::ElementExt::map_event) function.
 ///
-/// This is not implemented as a [`Filter`](filter/index.html) as filters do not allow changing the
+/// This is not implemented as a [`Filter`](super::filter) as filters do not allow changing the
 /// event type due to the lack of default associated types in Rust.
 ///
 /// # Examples

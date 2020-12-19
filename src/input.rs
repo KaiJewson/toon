@@ -251,13 +251,12 @@ impl BitOrAssign for Modifiers {
 ///
 /// This is implemented for:
 /// - Functions that take an input and return a boolean.
-/// - [`Input`](enum.Input.html), [`KeyPress`](struct.KeyPress.html), [`Mouse`](struct.Mouse.html)
-/// and `char` which just perform an equality check.
-/// - [`Key`](enum.Key.html), which does not allow any modifiers to be held down.
-/// - [`MouseKind`](enum.MouseKind.html), which can occur at any position without modifiers.
+/// - [`Input`], [`KeyPress`], [`Mouse`] and `char` which just perform an equality check.
+/// - [`Key`], which does not allow any modifiers to be held down.
+/// - [`MouseKind`], which can occur at any position without modifiers.
 /// - Tuples, which detect any one of the inputs occurring.
 ///
-/// You can use the [`input`](../macro.input.html) macro to generate patterns concisely.
+/// You can use the [`input`](crate::input!) macro to generate patterns concisely.
 pub trait Pattern {
     /// Whether the pattern matches this input.
     fn matches(&self, input: Input) -> bool;
@@ -333,7 +332,7 @@ impl_input_pattern_for_tuples! {
     (A, B, C, D, E, F, G, H, I, J, K, L),
 }
 
-/// A macro that generates [input patterns](input/trait.Pattern.html).
+/// A macro that generates [input patterns](Pattern).
 ///
 /// # Examples
 ///

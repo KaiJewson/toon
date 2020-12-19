@@ -5,7 +5,7 @@ use crate::Element;
 use super::Filter;
 
 /// A filter that sets the title of an element, created by the
-/// [`title`](../trait.ElementExt.html#method.title) function.
+/// [`title`](crate::ElementExt::title) function.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 #[non_exhaustive]
 pub struct Title<T> {

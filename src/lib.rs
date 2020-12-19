@@ -55,7 +55,7 @@
 //! - `dev`: Enable developer tools.
 //! - `either`: Integrate with the [`either`](https://crates.io/crates/either) crate. This
 //! implements `Element`, `Output` and `Collection` for `Either`.
-#![cfg_attr(feature = "nightly", feature(doc_cfg))]
+#![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 #![warn(
     clippy::pedantic,
     rust_2018_idioms,
@@ -96,46 +96,53 @@ pub use smartstring;
 #[cfg(feature = "either")]
 use either_crate::Either;
 
+pub mod backend;
 #[cfg(feature = "crossterm")]
 #[doc(no_inline)]
 pub use backend::Crossterm;
 #[doc(no_inline)]
 pub use backend::{Backend, Dummy};
-pub use buffer::*;
-pub use elements::*;
-pub use events::Events;
-pub use input::{Input, Key, KeyPress, Modifiers, Mouse, MouseButton, MouseKind};
-pub use output::Output;
-pub use style::*;
-pub use terminal::*;
-pub use vec2::Vec2;
 
-pub mod backend;
 pub mod buffer;
+pub use buffer::*;
+
 pub mod elements;
-pub mod events;
+pub use elements::*;
+
 pub mod input;
+pub use input::{Input, Key, KeyPress, Modifiers, Mouse, MouseButton, MouseKind};
+
 pub mod output;
+pub use output::Output;
+
 pub mod style;
+pub use style::*;
+
+mod events;
+pub use events::Events;
+
 mod terminal;
+pub use terminal::*;
+
 mod util;
+
 mod vec2;
+pub use vec2::Vec2;
 
 /// A composable part of the UI.
 ///
 /// Elements are cheap, immutable, borrowed and short-lived. They usually implement `Copy`.
 ///
 /// You shouldn't generally have to implement this trait yourself unless you're doing something
-/// really niche. Instead, combine elements from the [`elements`](elements/index.html) module.
+/// really niche. Instead, combine elements from the [`elements`] module.
 pub trait Element {
-    /// Events that this element produces.
+    /// The type of event this element produces.
     type Event;
 
     /// Draw the element to the output.
     ///
     /// Elements shouldn't draw to every part of the output if they don't have to. Containers like
-    /// [`Stack`](elements/containers/struct.Stack.html) allow users to set whatever content they
-    /// like for the background.
+    /// [`Stack`] allow users to set whatever content they like for the background.
     fn draw(&self, output: &mut dyn Output);
 
     /// Get the inclusive range of widths the element can take up given an optional fixed height.

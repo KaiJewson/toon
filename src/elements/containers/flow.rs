@@ -7,8 +7,7 @@ use super::{Axis, Collection, InnerElement, Layout1D};
 
 use self::private::Layout;
 
-/// A generic dynamic [`Layout1D`](trait.Layout1D.html), created by the [`flow`](fn.flow.html)
-/// function.
+/// A generic dynamic [`Layout1D`], created by the [`flow`] function.
 ///
 /// The layout algorithm works by calculating the minimum required space for each element, and then
 /// giving out all extra space equally among the other elements if they support it.
@@ -242,7 +241,7 @@ pub enum End {
     End,
 }
 
-/// Create a new [`Flow`](struct.Flow.html) layout.
+/// Create a new [`Flow`] layout.
 ///
 /// By default it will not be biased to either end; this means that it will not always totally fill
 /// the container.
