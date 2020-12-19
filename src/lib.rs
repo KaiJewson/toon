@@ -91,7 +91,6 @@ pub use ::std;
 
 #[cfg(feature = "either")]
 pub use either_crate as either;
-pub use smartstring;
 
 #[cfg(feature = "either")]
 use either_crate::Either;

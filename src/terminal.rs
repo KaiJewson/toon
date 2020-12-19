@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use os_pipe::PipeReader;
 
 use crate::backend::{Backend, Bound, ReadEvents, TerminalEvent, TerminalMouseKind, Tty};
-use crate::buffer::{Buffer, Cell, Grid};
+use crate::buffer::{Buffer, CellKind, Grid};
 use crate::{Color, Element, Input, Intensity, Mouse, MouseButton, MouseKind, Output, Style, Vec2};
 
 static TERMINAL_EXISTS: AtomicBool = AtomicBool::new(false);
@@ -202,13 +202,13 @@ impl<B: Backend> Terminal<B> {
 
                 let pos = Vec2::new(x as u16, y as u16);
 
-                let (new_contents, &new_contents_double, new_style) = match new_cell {
-                    Cell::Char {
+                let (new_contents, new_contents_double, new_style) = match new_cell.kind() {
+                    CellKind::Char {
                         contents,
                         double,
                         style,
                     } => (contents, double, style),
-                    Cell::Continuation => continue,
+                    CellKind::Continuation => continue,
                 };
 
                 macro_rules! diff_styles {
@@ -236,7 +236,7 @@ impl<B: Backend> Terminal<B> {
 
                 backend.write(&new_contents)?;
 
-                self.style = *new_style;
+                self.style = new_style;
 
                 self.cursor_pos = Vec2::new(
                     min(

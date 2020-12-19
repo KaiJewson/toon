@@ -96,7 +96,8 @@ impl Grid {
 
     /// Resize the grid's height, using an anchor line. Lines will be removed from the bottom until
     /// the anchor line is reached, and then they will be removed from the top to avoid removing
-    /// the anchor line. Adding lines will as usual add them to the bottom.
+    /// the anchor line. Adding lines will as usual add them to the bottom. This matches the
+    /// behaviour of resizing terminals, where the anchor is the line that the cursor is on.
     ///
     /// All new cells will be empty.
     pub fn resize_height_with_anchor(&mut self, new_height: u16, anchor_line: u16) {
@@ -201,18 +202,18 @@ impl Line {
     pub fn resize(&mut self, new_len: u16) {
         self.cells.resize(
             usize::from(new_len),
-            Cell::Char {
+            Cell(CellInner::Char {
                 contents: SmartString::from(" "),
                 double: false,
                 style: Style::default(),
-            },
+            }),
         );
 
-        if let Some(Cell::Char {
+        if let Some(Cell(CellInner::Char {
             contents,
             double: double @ true,
             ..
-        }) = self.cells.last_mut()
+        })) = self.cells.last_mut()
         {
             *contents = SmartString::from(" ");
             *double = false;
@@ -230,7 +231,7 @@ impl Line {
     /// Clear the line.
     pub fn clear(&mut self) {
         for cell in &mut self.cells {
-            *cell = Cell::Char {
+            cell.0 = CellInner::Char {
                 contents: " ".into(),
                 double: false,
                 style: Style::default(),
@@ -252,7 +253,7 @@ impl Output for Line {
 
         match c.width() {
             Some(0) => {
-                if let Some(Cell::Char { contents, .. }) = self.cells.get_mut(x) {
+                if let Some(Cell(CellInner::Char { contents, .. })) = self.cells.get_mut(x) {
                     contents.push(c);
                 }
             }
@@ -262,8 +263,8 @@ impl Output for Line {
                     None => return,
                 };
                 let old_cell = std::mem::replace(
-                    cell,
-                    Cell::Char {
+                    &mut cell.0,
+                    CellInner::Char {
                         contents: iter::once(c).collect(),
                         double: false,
                         style,
@@ -271,20 +272,20 @@ impl Output for Line {
                 );
 
                 match old_cell {
-                    Cell::Char {
+                    CellInner::Char {
                         double: true,
                         style: old_style,
                         ..
                     } => {
-                        self.cells[x + 1] = Cell::Char {
+                        self.cells[x + 1].0 = CellInner::Char {
                             contents: SmartString::from(" "),
                             double: false,
                             style: old_style,
                         };
                     }
-                    Cell::Char { .. } => {}
-                    Cell::Continuation => match &mut self.cells[x - 1] {
-                        Cell::Char {
+                    CellInner::Char { .. } => {}
+                    CellInner::Continuation => match &mut self.cells[x - 1].0 {
+                        CellInner::Char {
                             contents,
                             double: double @ true,
                             ..
@@ -298,23 +299,23 @@ impl Output for Line {
             }
             Some(2) => {
                 let second_cell = match self.cells.get_mut(x + 1) {
-                    Some(cell) => cell,
+                    Some(cell) => &mut cell.0,
                     None => return,
                 };
 
-                let old_second = std::mem::replace(second_cell, Cell::Continuation);
+                let old_second = std::mem::replace(second_cell, CellInner::Continuation);
                 let old_first = std::mem::replace(
-                    &mut self.cells[x],
-                    Cell::Char {
+                    &mut self.cells[x].0,
+                    CellInner::Char {
                         contents: iter::once(c).collect(),
                         double: true,
                         style,
                     },
                 );
 
-                if let Cell::Continuation = old_first {
-                    match &mut self.cells[x - 1] {
-                        Cell::Char {
+                if let CellInner::Continuation = old_first {
+                    match &mut self.cells[x - 1].0 {
+                        CellInner::Char {
                             contents, double, ..
                         } => {
                             *contents = SmartString::from(" ");
@@ -323,13 +324,13 @@ impl Output for Line {
                         _ => unreachable!(),
                     }
                 }
-                if let Cell::Char {
+                if let CellInner::Char {
                     double: true,
                     style: old_style,
                     ..
                 } = old_second
                 {
-                    self.cells[x + 2] = Cell::Char {
+                    self.cells[x + 2].0 = CellInner::Char {
                         contents: SmartString::from(" "),
                         double: false,
                         style: old_style,
@@ -346,15 +347,71 @@ impl Output for Line {
 
 /// A cell in a terminal.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Cell {
+pub struct Cell(CellInner);
+
+impl Cell {
+    /// Get the kind of the cell.
+    #[must_use]
+    pub fn kind(&self) -> CellKind<'_> {
+        match &self.0 {
+            CellInner::Char {
+                contents,
+                double,
+                style,
+            } => CellKind::Char {
+                contents: &contents,
+                double: *double,
+                style: *style,
+            },
+            CellInner::Continuation => CellKind::Continuation,
+        }
+    }
+
+    /// Get whether the cell is a character cell.
+    #[must_use]
+    pub fn is_char(&self) -> bool {
+        matches!(self.0, CellInner::Char { .. })
+    }
+
+    /// Get whether the cell is a continuation cell.
+    #[must_use]
+    pub fn is_continuation(&self) -> bool {
+        matches!(self.0, CellInner::Continuation)
+    }
+
+    /// Get whether the cell is part of a double-width character.
+    #[must_use]
+    pub fn is_double(&self) -> bool {
+        matches!(self.0, CellInner::Char { double: true, .. } | CellInner::Continuation)
+    }
+
+    /// Get the contents of the cell, if it is not a continuation cell.
+    #[must_use]
+    pub fn contents(&self) -> Option<&str> {
+        match &self.0 {
+            CellInner::Char { contents, .. } => Some(&**contents),
+            _ => None,
+        }
+    }
+
+    /// Get the style of cell, if it is not a continuation cell.
+    #[must_use]
+    pub fn style(&self) -> Option<Style> {
+        match &self.0 {
+            CellInner::Char { style, .. } => Some(*style),
+            _ => None,
+        }
+    }
+}
+
+/// A kind of cell.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CellKind<'a> {
     /// The cell contains a 1-2 width character followed by any number of zero-width characters.
     Char {
         /// The characters in the cell. The first character will be 1-2 columns wide, and the rest
         /// of the characters will be zero columns wide. This will contain no control characters.
-        ///
-        /// Since there are many cells, it is stored as a smart string which avoids too much heap
-        /// allocation.
-        contents: SmartString<LazyCompact>,
+        contents: &'a str,
         /// Whether the cell is double-width (that is, the width of the first character of
         /// `contents` as well as all of `contents` is 2).
         ///
@@ -367,23 +424,17 @@ pub enum Cell {
     Continuation,
 }
 
-impl Cell {
-    /// Get the contents of the cell, if present.
-    #[must_use]
-    pub fn contents(&self) -> Option<&str> {
-        match self {
-            Self::Char { contents, .. } => Some(&**contents),
-            _ => None,
-        }
-    }
-    /// Get the style of cell, if present.
-    #[must_use]
-    pub fn style(&self) -> Option<Style> {
-        match self {
-            Self::Char { style, .. } => Some(*style),
-            _ => None,
-        }
-    }
+/// A cell in a terminal. See `CellKind` above for more info on each variant.
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum CellInner {
+    Char {
+        /// Since there are many cells, this is stored as a smart string which avoids too much heap
+        /// allocation.
+        contents: SmartString<LazyCompact>,
+        double: bool,
+        style: Style,
+    },
+    Continuation,
 }
 
 #[cfg(test)]
@@ -398,7 +449,7 @@ fn test_line() {
         let mut continuation = false;
         for (x, cell) in line.cells.iter().enumerate() {
             if continuation {
-                if let Cell::Char { contents, .. } = cell {
+                if let Some(contents) = cell.contents() {
                     panic!(
                         "Cell at {} is not a continuation, contains {:?} ({:?})",
                         x,
@@ -408,19 +459,19 @@ fn test_line() {
                 }
                 continuation = false;
             } else {
-                match cell {
-                    Cell::Char {
+                match cell.kind() {
+                    CellKind::Char {
                         contents, double, ..
                     } => {
                         assert!(!contents.is_empty());
 
-                        let width = if *double { 2 } else { 1 };
+                        let width = if double { 2 } else { 1 };
                         assert_eq!(contents.width(), width);
                         assert_eq!(contents.chars().next().unwrap().width().unwrap(), width);
 
-                        continuation = *double;
+                        continuation = double;
                     }
-                    Cell::Continuation => panic!("Cell at {} is a continuation!", x),
+                    CellKind::Continuation => panic!("Cell at {} is a continuation!", x),
                 }
             }
         }

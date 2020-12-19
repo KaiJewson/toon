@@ -76,9 +76,9 @@ fn test_block() {
     for line in grid.lines() {
         for cell in line.cells() {
             assert_eq!(
-                cell,
-                &crate::Cell::Char {
-                    contents: " ".into(),
+                cell.kind(),
+                crate::CellKind::Char {
+                    contents: " ",
                     double: false,
                     style: Style::default().on_red(),
                 },
