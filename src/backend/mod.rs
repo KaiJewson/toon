@@ -14,6 +14,7 @@ use stdio_override::{StderrOverride, StdoutOverride};
 use crate::{Color, CursorShape, Intensity, KeyPress, Modifiers, MouseButton, Vec2};
 
 #[cfg(feature = "crossterm")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "crossterm")))]
 mod crossterm;
 mod dummy;
 

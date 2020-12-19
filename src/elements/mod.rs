@@ -18,6 +18,7 @@ pub use span::*;
 
 pub mod containers;
 #[cfg(feature = "dev")]
+#[cfg_attr(feature = "nightly", doc(cfg(feature = "dev")))]
 pub mod dev;
 pub mod filter;
 

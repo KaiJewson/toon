@@ -22,7 +22,6 @@ use super::{Backend, ReadEvents, TerminalEvent, TerminalMouse, TerminalMouseKind
 ///
 /// Crossterm supports all features except setting the cursor shape (see
 /// <https://github.com/crossterm-rs/crossterm/issues/427>).
-#[cfg_attr(feature = "nightly", doc(cfg(feature = "crossterm")))]
 #[derive(Debug, Default, Clone)]
 #[non_exhaustive]
 pub struct Crossterm {}
