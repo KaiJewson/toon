@@ -4,11 +4,10 @@
 compile_error!("Dev mode currently requires `either` feature to be active.");
 
 use std::cmp::max;
-use std::future;
+use std::io::Read;
 
 use either_crate::Either;
-use futures_codec::Bytes;
-use futures_util::stream::{Stream, StreamExt};
+use futures_lite::stream::{Stream, StreamExt as _};
 
 use crate::{
     input, Alignment, Border, Captured, Color, Element, ElementExt, End, Mouse, MouseButton,
@@ -385,7 +384,7 @@ enum EventKind {
     SetRightPanelResizing,
     SetBottomPanelResizing,
     StopResizing,
-    CapturedData(Bytes),
+    CapturedData(Vec<u8>),
 }
 
 impl<T> From<EventKind> for AppEvent<T> {
@@ -403,9 +402,21 @@ impl<T> From<EventKind> for AppEvent<T> {
 /// **Do not use this function when you are printing from inside the drawing function**, as that
 /// will cause the app to redraw instantly, getting it stuck in an infinite loop of printing and
 /// redrawing.
-pub fn display_captured(captured: Captured) -> impl Stream<Item = Event> + Unpin {
-    futures_codec::FramedRead::new(blocking::Unblock::new(captured), futures_codec::BytesCodec)
-        .filter_map(|res| future::ready(res.ok()))
-        .map(EventKind::CapturedData)
-        .map(Event)
+pub fn display_captured(mut captured: Captured) -> impl Stream<Item = Event> + Unpin {
+    let (sender, receiver) = async_channel::bounded(4);
+
+    std::thread::spawn(move || {
+        futures_lite::future::block_on(async move {
+            let mut buf = [0; 1024];
+            loop {
+                if let Ok(i) = captured.read(&mut buf) {
+                    if i == 0 || sender.send(buf[..i].to_vec()).await.is_err() {
+                        break;
+                    }
+                }
+            }
+        })
+    });
+
+    receiver.map(|v| Event(EventKind::CapturedData(v)))
 }

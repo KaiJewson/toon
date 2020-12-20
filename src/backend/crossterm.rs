@@ -1,4 +1,7 @@
+use std::future::Future;
 use std::io::Write;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
 use crossterm::event::{
     Event, EventStream, KeyCode, KeyModifiers, MouseButton as CMouseButton, MouseEvent,
@@ -7,8 +10,7 @@ use crossterm::style::{self, Attribute, Color as CColor};
 use crossterm::{cursor, event, terminal};
 use crossterm::{execute, queue};
 use crossterm_crate as crossterm;
-use futures_util::future::{self, FutureExt};
-use futures_util::stream::{self, StreamExt};
+use futures_core::stream::Stream as _;
 
 use crate::input::{Key, KeyPress, Modifiers, MouseButton};
 use crate::style::{Color, Intensity, Rgb};
@@ -182,15 +184,27 @@ impl super::Bound for Bound {
 #[allow(clippy::type_complexity)]
 impl<'a> ReadEvents<'a> for Bound {
     type EventError = <Self as super::Bound>::Error;
-    type EventFuture = future::Map<
-        stream::Next<'a, EventStream>,
-        fn(Option<crossterm::Result<Event>>) -> crossterm::Result<TerminalEvent>,
-    >;
+    type EventFuture = EventFuture<'a>;
 
     fn read_event(&'a mut self) -> Self::EventFuture {
-        self.stream
-            .next()
-            .map(|item| item.unwrap().map(from_crossterm_event))
+        EventFuture {
+            stream: &mut self.stream,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct EventFuture<'a> {
+    stream: &'a mut EventStream,
+}
+
+impl<'a> Future for EventFuture<'a> {
+    type Output = crossterm::Result<TerminalEvent>;
+
+    fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
+        Pin::new(&mut self.stream)
+            .poll_next(cx)
+            .map(|event| event.unwrap().map(from_crossterm_event))
     }
 }
 

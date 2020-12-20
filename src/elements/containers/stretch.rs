@@ -169,7 +169,7 @@ where
     }
 }
 
-/// Create a new [`Stretch`] layout.
+/// Create a new [`Stretch`] layout with the index of the element to be stretched.
 #[must_use]
 pub fn stretch(stretched: usize) -> Stretch {
     Stretch { stretched }

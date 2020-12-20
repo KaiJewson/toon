@@ -1,5 +1,6 @@
 //! A program that displays all the users's inputs, for experimenting and testing purposes.
 
+use futures_lite::future;
 use toon::{Crossterm, ElementExt, Input, ScrollOffset, Terminal};
 
 enum Event {
@@ -8,7 +9,7 @@ enum Event {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    smol::block_on(async {
+    future::block_on(async {
         let mut terminal = Terminal::new(Crossterm::default())?;
 
         let mut elements = Vec::new();

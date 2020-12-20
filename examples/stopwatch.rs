@@ -2,7 +2,8 @@
 
 use std::time::{Duration, Instant};
 
-use smol::{future, Timer};
+use async_io::Timer;
+use futures_lite::future;
 use toon::{Crossterm, ElementExt, Styled, Terminal};
 
 /// The state of the stopwatch.
@@ -24,7 +25,7 @@ enum Event {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    smol::block_on(async {
+    async_io::block_on(async {
         // The stopwatch starts in a stopped state with 0 seconds.
         let mut stopwatch = Stopwatch::Stopped(Duration::default());
 

@@ -20,7 +20,7 @@ mod dummy;
 
 #[cfg(feature = "crossterm")]
 pub use self::crossterm::Crossterm;
-pub use self::dummy::*;
+pub use self::dummy::{Dummy, Operation};
 
 /// A backend that can be used with Toon.
 pub trait Backend {

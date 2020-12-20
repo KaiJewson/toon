@@ -1,11 +1,11 @@
 //! An example using Toon's developer tools functionality.
 
-use smol::future;
-use smol::stream::StreamExt;
+use futures_lite::future;
+use futures_lite::stream::StreamExt;
 use toon::{dev, Crossterm, ElementExt, Terminal};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    smol::block_on(async {
+    future::block_on(async {
         let mut terminal = Terminal::new(Crossterm::default())?;
 
         // Initialize the dev state

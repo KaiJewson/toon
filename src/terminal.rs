@@ -382,59 +382,6 @@ impl<B: StdError + 'static> StdError for Error<B> {
 #[derive(Debug)]
 pub struct Captured(PipeReader);
 
-impl Captured {
-    /// Put this reader into non-blocking mode, where a blocking read will return
-    /// [`io::ErrorKind::WouldBlock`] instead of blocking.
-    ///
-    /// This should not be used to implement asynchronous I/O on a [`Captured`].
-    #[allow(clippy::missing_errors_doc)]
-    pub fn set_nonblocking(&self) -> io::Result<()> {
-        #[cfg(unix)]
-        {
-            use std::os::unix::io::AsRawFd;
-
-            let fd = self.0.as_raw_fd();
-
-            unsafe {
-                let status = libc::fcntl(fd, libc::F_GETFL);
-                if status == -1 {
-                    return Err(io::Error::last_os_error());
-                }
-                if libc::fcntl(fd, libc::F_SETFL, status | libc::O_NONBLOCK) == -1 {
-                    return Err(io::Error::last_os_error());
-                }
-            }
-        }
-        #[cfg(windows)]
-        {
-            use std::os::windows::io::AsRawHandle;
-            use std::ptr;
-
-            use winapi::shared::minwindef::LPDWORD;
-            use winapi::um::namedpipeapi::SetNamedPipeHandleState;
-            use winapi::um::winbase::PIPE_NOWAIT;
-
-            let handle = self.0.as_raw_handle();
-
-            let mut nowait = PIPE_NOWAIT;
-
-            let res = unsafe {
-                SetNamedPipeHandleState(
-                    handle,
-                    &mut nowait as LPDWORD,
-                    ptr::null_mut(),
-                    ptr::null_mut(),
-                )
-            };
-
-            if res == 0 {
-                return Err(io::Error::last_os_error());
-            }
-        }
-        Ok(())
-    }
-}
-
 impl Read for Captured {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         self.0.read(buf)

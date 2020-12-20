@@ -1,8 +1,10 @@
 use std::cmp::min;
 use std::collections::VecDeque;
 use std::convert::Infallible;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
 
-use futures_util::future;
 use unicode_width::UnicodeWidthStr;
 
 use crate::buffer::{Buffer, Grid};
@@ -232,25 +234,34 @@ impl Bound for Dummy {
     }
 }
 
-type EventResult = Result<TerminalEvent, Infallible>;
-
 impl<'a> ReadEvents<'a> for Dummy {
     type EventError = Infallible;
-    type EventFuture =
-        future::Either<std::future::Ready<EventResult>, std::future::Pending<EventResult>>;
+    type EventFuture = EventFuture;
 
     fn read_event(&'a mut self) -> Self::EventFuture {
-        self.events.pop_front().map_or_else(
-            || future::Either::Right(std::future::pending()),
-            |event| {
-                if let TerminalEvent::Resize(size) = event {
-                    self.buffer.grid.resize_width(size.x);
-                    self.buffer
-                        .grid
-                        .resize_height_with_anchor(size.x, self.cursor_pos.y);
-                }
-                future::Either::Left(std::future::ready(Ok(event)))
-            },
-        )
+        let event = self.events.pop_front();
+
+        if let Some(TerminalEvent::Resize(size)) = event {
+            self.buffer.grid.resize_width(size.x);
+            self.buffer
+                .grid
+                .resize_height_with_anchor(size.x, self.cursor_pos.y);
+        }
+
+        EventFuture(event)
+    }
+}
+
+#[derive(Debug)]
+pub struct EventFuture(Option<TerminalEvent>);
+
+impl Future for EventFuture {
+    type Output = Result<TerminalEvent, Infallible>;
+
+    fn poll(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Self::Output> {
+        match self.0.take() {
+            Some(event) => Poll::Ready(Ok(event)),
+            None => Poll::Pending,
+        }
     }
 }

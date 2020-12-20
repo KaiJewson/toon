@@ -1,10 +1,11 @@
 //! A simple hello world example in Toon.
 
+use futures_lite::future;
 use toon::{Crossterm, ElementExt, Terminal};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // Start the async runtime. We're using smol here, but you can use any runtime you like.
-    smol::block_on(async {
+    // Enter an async context.
+    future::block_on(async {
         // Initialize the terminal with the Crossterm backend.
         let mut terminal = Terminal::new(Crossterm::default())?;
 

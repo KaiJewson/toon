@@ -1,5 +1,6 @@
 //! A counter that can be incremented by pressing space.
 
+use futures_lite::future;
 use toon::{Crossterm, ElementExt, Styled, Terminal};
 
 /// Types of events that can happen in this application.
@@ -11,7 +12,7 @@ enum Event {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    smol::block_on(async {
+    future::block_on(async {
         // The counter to be incremented.
         let mut counter: usize = 0;
 
