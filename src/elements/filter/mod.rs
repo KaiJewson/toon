@@ -10,23 +10,29 @@ use std::marker::PhantomData;
 use crate::output::Output;
 use crate::{Cursor, Element, Events, Input, KeyPress, Mouse, Style, Vec2};
 
-pub use border::*;
-pub use float::*;
-pub use input_mask::*;
-pub use on::*;
-pub use scroll::*;
-pub use size::*;
-pub use tile::*;
-pub use title::*;
-
 mod border;
+pub use border::*;
+
 mod float;
+pub use float::*;
+
 mod input_mask;
+pub use input_mask::*;
+
 mod on;
+pub use on::*;
+
 mod scroll;
+pub use scroll::*;
+
 mod size;
+pub use size::*;
+
 mod tile;
+pub use tile::*;
+
 mod title;
+pub use title::*;
 
 /// A wrapper around a single element that modifies it.
 pub trait Filter<Event> {

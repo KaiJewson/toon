@@ -7,24 +7,26 @@ use std::fmt::Display;
 
 use crate::{input, Element, Input, Vec2};
 
-pub use containers::*;
-pub use filter::*;
-
-pub use block::*;
-#[cfg(feature = "dev")]
-pub use dev::Dev;
-pub use map_event::*;
-pub use span::*;
-
 pub mod containers;
+pub use containers::*;
+
 #[cfg(feature = "dev")]
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "dev")))]
 pub mod dev;
+#[cfg(feature = "dev")]
+pub use dev::Dev;
+
 pub mod filter;
+pub use filter::*;
 
 mod block;
+pub use block::*;
+
 mod map_event;
+pub use map_event::*;
+
 mod span;
+pub use span::*;
 
 /// An extension trait for elements providing useful methods.
 pub trait ElementExt: Element + Sized {
@@ -257,6 +259,7 @@ pub trait ElementExt: Element + Sized {
     }
 
     /// Erase the element's type by boxing it.
+    #[must_use]
     fn boxed<'a>(self) -> Box<dyn Element<Event = Self::Event> + 'a>
     where
         Self: 'a,

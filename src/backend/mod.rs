@@ -16,10 +16,10 @@ use crate::{Color, CursorShape, Intensity, KeyPress, Modifiers, MouseButton, Vec
 #[cfg(feature = "crossterm")]
 #[cfg_attr(feature = "doc_cfg", doc(cfg(feature = "crossterm")))]
 mod crossterm;
-mod dummy;
-
 #[cfg(feature = "crossterm")]
 pub use self::crossterm::Crossterm;
+
+mod dummy;
 pub use self::dummy::{Dummy, Operation};
 
 /// A backend that can be used with Toon.

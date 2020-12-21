@@ -21,15 +21,17 @@ use either_crate::Either;
 use crate::output::{Ext as _, Output};
 use crate::{Element, Events, Input, Vec2};
 
-pub use flow::*;
-pub use r#static::*;
-pub use stack::*;
-pub use stretch::*;
-
 mod flow;
+pub use flow::*;
+
 mod stack;
+pub use stack::*;
+
 mod r#static;
+pub use r#static::*;
+
 mod stretch;
+pub use stretch::*;
 
 /// A collection of elements, held by containers.
 ///

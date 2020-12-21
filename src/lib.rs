@@ -5,7 +5,7 @@
 //! A simple, declarative, and modular TUI library.
 //!
 //! In Toon, every application starts out with some **state**. Then, using your state you create an
-//! **element** (the [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.trait) trait). You pass
+//! **element** (the [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.html) trait). You pass
 //! your element to Toon using
 //! [`Terminal::draw`](https://docs.rs/toon/0.1/toon/struct.Terminal.html#method.draw) and it
 //! renders it to the screen, before waiting for user input. When that occurs, Toon uses your
@@ -60,7 +60,9 @@
 //! `Either`.
 #![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
 #![warn(
+    clippy::cargo,
     clippy::pedantic,
+    clippy::wrong_pub_self_convention,
     rust_2018_idioms,
     missing_docs,
     unused_qualifications,
@@ -70,6 +72,8 @@
     // `as u16` is used when we need to get the width of a string that is guaranteed not to exceed
     // u16.
     clippy::cast_possible_truncation,
+    // socket2 hasn't released its new version yet
+    clippy::multiple_crate_versions,
     clippy::non_ascii_literal,
     clippy::struct_excessive_bools,
     // See issue #74087: <https://github.com/rust-lang/rust/issues/74087>
@@ -79,6 +83,7 @@
 // For checking before a release
 // #![deny(
 //     clippy::dbg_macro,
+//     clippy::print_stderr,
 //     clippy::print_stdout,
 //     clippy::todo,
 //     clippy::unimplemented,
