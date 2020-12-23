@@ -13,6 +13,9 @@ use crate::{Cursor, Element, Events, Input, KeyPress, Mouse, Style, Vec2};
 mod border;
 pub use border::*;
 
+mod fill_background;
+pub use fill_background::*;
+
 mod float;
 pub use float::*;
 
@@ -114,18 +117,25 @@ pub trait Filter<Event> {
         element.title(title)
     }
 
-    /// Get the inclusive range of widths the element can take up given an optional fixed height.
+    /// Get the ideal width the element takes up given a fixed height and optional maximum width.
     ///
-    /// By default this calls the element's [`width`](Element::width) method.
-    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        element.width(height)
+    /// By default this calls the element's [`ideal_width`](Element::ideal_width) method.
+    fn ideal_width<E: Element>(&self, element: E, height: u16, max_width: Option<u16>) -> u16 {
+        element.ideal_width(height, max_width)
     }
 
-    /// Get the inclusive range of heights the element can take up given an optional fixed width.
+    /// Get the ideal height the element takes up given a fixed width and optional maximum height.
     ///
-    /// By default this calls the element's [`height`](Element::height) method.
-    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        element.height(width)
+    /// By default this calls the element's [`ideal_height`](Element::ideal_height) method.
+    fn ideal_height<E: Element>(&self, element: E, width: u16, max_height: Option<u16>) -> u16 {
+        element.ideal_height(width, max_height)
+    }
+
+    /// Get the ideal size the element takes up given an optional maximum size.
+    ///
+    /// By default this calls the element's [`ideal_size`](Element::ideal_size) method.
+    fn ideal_size<E: Element>(&self, element: E, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        element.ideal_size(maximum)
     }
 
     /// React to the input and output events if necessary.
@@ -192,11 +202,14 @@ impl<T: Element, F: Filter<T::Event>> Element for Filtered<T, F> {
     fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
         self.filter.title(&self.element, title)
     }
-    fn width(&self, height: Option<u16>) -> (u16, u16) {
-        self.filter.width(&self.element, height)
+    fn ideal_width(&self, height: u16, max_width: Option<u16>) -> u16 {
+        self.filter.ideal_width(&self.element, height, max_width)
     }
-    fn height(&self, width: Option<u16>) -> (u16, u16) {
-        self.filter.height(&self.element, width)
+    fn ideal_height(&self, width: u16, max_height: Option<u16>) -> u16 {
+        self.filter.ideal_height(&self.element, width, max_height)
+    }
+    fn ideal_size(&self, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        self.filter.ideal_size(&self.element, maximum)
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         self.filter.handle(&self.element, input, events);

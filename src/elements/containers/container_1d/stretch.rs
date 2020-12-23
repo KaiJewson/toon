@@ -4,8 +4,6 @@ use crate::Element;
 
 use super::{Axis, Collection, InnerElement, Layout1D};
 
-use self::private::Layout;
-
 /// A dynamic element [`Layout1D`] where there is one flexible and many fixed sized elements,
 /// created by the [`stretch`] function.
 ///
@@ -27,7 +25,7 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Stretch {
         &'a self,
         elements: &'a C,
         main_axis_size: u16,
-        cross_axis_size: Option<u16>,
+        cross_axis_size: u16,
         axis: Axis,
     ) -> Self::Layout {
         let elements_len = elements.len();
@@ -46,59 +44,33 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Stretch {
             cross_axis_size,
         }
     }
-
-    fn main_axis_size(
-        &'a self,
-        elements: &'a C,
-        cross_axis_size: Option<u16>,
-        axis: Axis,
-    ) -> (u16, u16) {
-        (
-            elements
-                .iter()
-                .enumerate()
-                .map(|(i, element)| {
-                    if i == self.stretched {
-                        0
-                    } else {
-                        axis.element_size(element, cross_axis_size).0
-                    }
-                })
-                .sum(),
-            u16::MAX,
-        )
-    }
 }
 
-mod private {
-    use super::super::Axis;
+/// The layout of a Stretch.
+///
+/// This iterates from the start up to but not including the stretched element, and then from the
+/// end until it reaches the stretched element.
+#[derive(Debug)]
+pub struct Layout<I> {
+    /// The iterator over the elements.
+    elements: I,
+    /// The original length of the iterator. Used to set `i` to after it reaches the element before
+    /// the stretched one.
+    elements_len: usize,
+    /// The index into the iterator.
+    i: usize,
+    /// The index of the stretched element.
+    stretched: usize,
 
-    /// The layout of a Stretch.
-    ///
-    /// This iterates from the start up to but not including the stretched element, and then from the
-    /// end until it reaches the stretched element.
-    #[derive(Debug)]
-    pub struct Layout<I> {
-        /// The iterator over the elements.
-        pub(super) elements: I,
-        /// The original length of the iterator. Used to set `i` to after it reaches the element before
-        /// the stretched one.
-        pub(super) elements_len: usize,
-        /// The index into the iterator.
-        pub(super) i: usize,
-        /// The index of the stretched element.
-        pub(super) stretched: usize,
+    /// The location at which free space starts.
+    start_offset: u16,
+    /// The location at which free space ends.
+    end_offset: u16,
 
-        /// The location at which free space starts.
-        pub(super) start_offset: u16,
-        /// The location at which free space ends.
-        pub(super) end_offset: u16,
-
-        /// The axis of the container.
-        pub(super) axis: Axis,
-        /// The cross axis size of the container.
-        pub(super) cross_axis_size: Option<u16>,
-    }
+    /// The axis of the container.
+    axis: Axis,
+    /// The cross axis size of the container.
+    cross_axis_size: u16,
 }
 
 impl<'a, I, Event: 'a> Iterator for Layout<I>
@@ -124,7 +96,7 @@ where
                 }
 
                 let element = self.elements.next()?;
-                let main_axis_size = self.axis.element_size(element, self.cross_axis_size).0;
+                let main_axis_size = self.axis.element_size(element, self.cross_axis_size);
                 let position = self.start_offset;
                 self.start_offset = self.start_offset.saturating_add(main_axis_size);
                 Some(InnerElement {
@@ -153,7 +125,7 @@ where
 
                 let element = self.elements.next_back()?;
                 let main_axis_size = min(
-                    self.axis.element_size(element, self.cross_axis_size).0,
+                    self.axis.element_size(element, self.cross_axis_size),
                     self.end_offset - self.start_offset,
                 );
 

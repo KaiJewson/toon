@@ -152,15 +152,28 @@ pub trait Element {
     /// [`Stack`] allow users to set whatever content they like for the background.
     fn draw(&self, output: &mut dyn Output);
 
-    /// Get the inclusive range of widths the element can take up given an optional fixed height.
+    /// Get the ideal width that this element takes up given a fixed height and an optional maximum
+    /// width.
     ///
-    /// The second value must be >= the first, otherwise panics may occur.
-    fn width(&self, height: Option<u16>) -> (u16, u16);
+    /// Implementors may return a value higher than the maximum from this function, in which case
+    /// callers should do their best to fulfill this request, but can simply cap it off at the
+    /// maximum if they wish.
+    fn ideal_width(&self, height: u16, max_width: Option<u16>) -> u16;
 
-    /// Get the inclusive range of heights the element can take up given an optional fixed width.
+    /// Get the ideal height that this element takes up given a fixed width and an optional maximum
+    /// height.
     ///
-    /// The second value must be >= the first, otherwise panics may occur.
-    fn height(&self, width: Option<u16>) -> (u16, u16);
+    /// Implementors may return a value higher than the maximum from this function, in which case
+    /// callers should do their best to fulfill this request, but can simply cap it off at the
+    /// maximum if they wish.
+    fn ideal_height(&self, width: u16, max_height: Option<u16>) -> u16;
+
+    /// Get the ideal size of the element given an optional maximum size.
+    ///
+    /// Implementors may return a value higher than the maximum from this function in either
+    /// dimension, in which case callers should do their best to fulfill this request, but can
+    /// simply cap it off at the maximum if they wish.
+    fn ideal_size(&self, maximum: Vec2<Option<u16>>) -> Vec2<u16>;
 
     /// React to the input and output events if necessary.
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>);
@@ -176,40 +189,23 @@ pub trait Element {
     }
 }
 
-impl<'a, E: Element + ?Sized> Element for &'a E {
-    type Event = E::Event;
-
-    fn draw(&self, output: &mut dyn Output) {
-        (*self).draw(output)
-    }
-    fn width(&self, height: Option<u16>) -> (u16, u16) {
-        (*self).width(height)
-    }
-    fn height(&self, width: Option<u16>) -> (u16, u16) {
-        (*self).height(width)
-    }
-    fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
-        (*self).handle(input, events)
-    }
-    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
-        (*self).title(title)
-    }
-}
-
 macro_rules! implement_element_forwarding {
-    ($($name:ident),*) => {
+    ($($name:ty),*) => {
         $(
-            impl<'a, E: Element + ?Sized> Element for $name<E> {
+            impl<'a, E: Element + ?Sized> Element for $name {
                 type Event = E::Event;
 
                 fn draw(&self, output: &mut dyn Output) {
                     (**self).draw(output)
                 }
-                fn width(&self, height: Option<u16>) -> (u16, u16) {
-                    (**self).width(height)
+                fn ideal_width(&self, height: u16, max_width: Option<u16>) -> u16 {
+                    (**self).ideal_width(height, max_width)
                 }
-                fn height(&self, width: Option<u16>) -> (u16, u16) {
-                    (**self).height(width)
+                fn ideal_height(&self, width: u16, max_height: Option<u16>) -> u16 {
+                    (**self).ideal_height(width, max_height)
+                }
+                fn ideal_size(&self, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+                    (**self).ideal_size(maximum)
                 }
                 fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
                     (**self).handle(input, events)
@@ -221,7 +217,7 @@ macro_rules! implement_element_forwarding {
         )*
     }
 }
-implement_element_forwarding!(Box, Arc, Rc);
+implement_element_forwarding!(&'a E, Box<E>, Arc<E>, Rc<E>);
 
 #[cfg(feature = "either")]
 impl<L: Element, R: Element<Event = L::Event>> Element for Either<L, R> {
@@ -233,16 +229,22 @@ impl<L: Element, R: Element<Event = L::Event>> Element for Either<L, R> {
             Self::Right(r) => r.draw(output),
         }
     }
-    fn width(&self, height: Option<u16>) -> (u16, u16) {
+    fn ideal_width(&self, height: u16, max_width: Option<u16>) -> u16 {
         match self {
-            Self::Left(l) => l.width(height),
-            Self::Right(r) => r.width(height),
+            Self::Left(l) => l.ideal_width(height, max_width),
+            Self::Right(r) => r.ideal_width(height, max_width),
         }
     }
-    fn height(&self, width: Option<u16>) -> (u16, u16) {
+    fn ideal_height(&self, width: u16, max_height: Option<u16>) -> u16 {
         match self {
-            Self::Left(l) => l.height(width),
-            Self::Right(r) => r.height(width),
+            Self::Left(l) => l.ideal_height(width, max_height),
+            Self::Right(r) => r.ideal_height(width, max_height),
+        }
+    }
+    fn ideal_size(&self, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        match self {
+            Self::Left(l) => l.ideal_size(maximum),
+            Self::Right(l) => l.ideal_size(maximum),
         }
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {

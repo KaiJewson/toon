@@ -324,17 +324,29 @@ impl<Event> Filter<Event> for Border {
             }
         }
     }
-    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        let (min, max) = element.width(height);
-        let extra_width = if self.padding { 4 } else { 2 };
-        (
-            min.saturating_add(extra_width),
-            max.saturating_add(extra_width),
-        )
+    fn ideal_width<E: Element>(&self, element: E, height: u16, max_width: Option<u16>) -> u16 {
+        let added_x = if self.padding { 4 } else { 2 };
+        element
+            .ideal_width(
+                height.saturating_sub(2),
+                max_width.map(|mw| mw.saturating_sub(added_x)),
+            )
+            .saturating_add(added_x)
     }
-    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        let (min, max) = element.height(width);
-        (min.saturating_add(2), max.saturating_add(2))
+    fn ideal_height<E: Element>(&self, element: E, width: u16, max_height: Option<u16>) -> u16 {
+        element
+            .ideal_height(
+                width.saturating_sub(if self.padding { 4 } else { 2 }),
+                max_height.map(|mh| mh.saturating_sub(2)),
+            )
+            .saturating_add(2)
+    }
+    fn ideal_size<E: Element>(&self, element: E, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        let size = element.ideal_size(maximum);
+        Vec2 {
+            x: size.x.saturating_add(if self.padding { 4 } else { 2 }),
+            y: size.y.saturating_add(2),
+        }
     }
     fn handle<E: Element<Event = Event>>(
         &self,

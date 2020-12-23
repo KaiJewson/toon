@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::events::Events;
-use crate::{Element, Input, Output};
+use crate::{Element, Input, Output, Vec2};
 
 /// An element that maps the event type of an element, created by the
 /// [`map_event`](super::ElementExt::map_event) function.
@@ -31,11 +31,14 @@ impl<T: Element, F: Fn(T::Event) -> Event2, Event2> Element for MapEvent<T, F> {
     fn draw(&self, output: &mut dyn Output) {
         self.inner.draw(output)
     }
-    fn width(&self, height: Option<u16>) -> (u16, u16) {
-        self.inner.width(height)
+    fn ideal_width(&self, height: u16, max_width: Option<u16>) -> u16 {
+        self.inner.ideal_width(height, max_width)
     }
-    fn height(&self, width: Option<u16>) -> (u16, u16) {
-        self.inner.height(width)
+    fn ideal_height(&self, width: u16, max_height: Option<u16>) -> u16 {
+        self.inner.ideal_height(width, max_height)
+    }
+    fn ideal_size(&self, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        self.inner.ideal_size(maximum)
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Self::Event>) {
         self.inner.handle(input, &mut events.map(&self.f));

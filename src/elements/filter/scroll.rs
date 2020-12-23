@@ -1,4 +1,4 @@
-use std::cmp::{max, min};
+use std::cmp;
 
 use crate::output::{Ext as _, Output};
 use crate::{Element, Events, Input, Mouse, Vec2};
@@ -24,20 +24,22 @@ pub struct Scroll {
 impl Scroll {
     /// Get the element size and absolute scroll offset of the element.
     fn layout(self, element: impl Element, output_size: Vec2<u16>) -> (Vec2<u16>, Vec2<u16>) {
+        let size = element.ideal_size(Vec2::new(None, None));
+
         let (element_width, offset_x) = self.by.x.map_or((output_size.x, 0), |offset| {
-            let element_width = max(element.width(None).0, output_size.x);
+            let element_width = cmp::max(size.x, output_size.x);
             let maximum_offset = element_width - output_size.x;
             let offset = match offset {
-                ScrollOffset::Start(offset) => min(offset, maximum_offset),
+                ScrollOffset::Start(offset) => cmp::min(offset, maximum_offset),
                 ScrollOffset::End(end) => maximum_offset.saturating_sub(end),
             };
             (element_width, offset)
         });
         let (element_height, offset_y) = self.by.y.map_or((output_size.x, 0), |offset| {
-            let element_height = max(element.height(None).0, output_size.y);
+            let element_height = cmp::max(size.y, output_size.y);
             let maximum_offset = element_height - output_size.y;
             let offset = match offset {
-                ScrollOffset::Start(offset) => min(offset, maximum_offset),
+                ScrollOffset::Start(offset) => cmp::min(offset, maximum_offset),
                 ScrollOffset::End(end) => maximum_offset.saturating_sub(end),
             };
             (element_height, offset)
@@ -54,20 +56,6 @@ impl<Event> Filter<Event> for Scroll {
         let (element_size, offset) = self.layout(&element, output.size());
 
         element.draw(&mut output.area(-offset.map(i32::from), element_size));
-    }
-    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        if self.by.x.is_some() {
-            (1, element.width(height).1)
-        } else {
-            element.width(height)
-        }
-    }
-    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        if self.by.y.is_some() {
-            (1, element.height(width).1)
-        } else {
-            element.height(width)
-        }
     }
     fn handle<E: Element<Event = Event>>(
         &self,

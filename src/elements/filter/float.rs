@@ -1,3 +1,5 @@
+use std::cmp;
+
 use crate::output::{Ext as _, Output};
 use crate::{Element, Events, Input, Mouse, Vec2};
 
@@ -27,19 +29,21 @@ impl Float {
         output_size: Vec2<u16>,
     ) -> (Vec2<u16>, Vec2<u16>) {
         let size = match (self.align.x, self.align.y) {
-            (Some(_), Some(_)) => {
-                let width = element.width(None).0;
-                let height = element.height(Some(width)).0;
-                Vec2::new(width, height)
-            }
-            (Some(_), None) => {
-                let width = element.width(Some(output_size.y)).0;
-                Vec2::new(width, output_size.y)
-            }
-            (None, Some(_)) => {
-                let height = element.height(Some(output_size.x)).0;
-                Vec2::new(output_size.x, height)
-            }
+            (Some(_), Some(_)) => element.ideal_size(output_size.map(Some)),
+            (Some(_), None) => Vec2::new(
+                cmp::min(
+                    element.ideal_width(output_size.y, Some(output_size.x)),
+                    output_size.x,
+                ),
+                output_size.y,
+            ),
+            (None, Some(_)) => Vec2::new(
+                output_size.x,
+                cmp::min(
+                    element.ideal_height(output_size.x, Some(output_size.y)),
+                    output_size.y,
+                ),
+            ),
             (None, None) => output_size,
         };
         let size = Vec2::min(size, output_size);
@@ -65,28 +69,6 @@ impl<Event> Filter<Event> for Float {
         let (offset, size) = self.calculate_layout(&element, output.size());
 
         element.draw(&mut output.area(offset.map(i32::from), size));
-    }
-    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        let width = element.width(height);
-        (
-            width.0,
-            if self.align.x.is_some() {
-                u16::MAX
-            } else {
-                width.1
-            },
-        )
-    }
-    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        let height = element.height(width);
-        (
-            height.0,
-            if self.align.y.is_some() {
-                u16::MAX
-            } else {
-                height.1
-            },
-        )
     }
     fn handle<E: Element<Event = Event>>(
         &self,
@@ -143,7 +125,7 @@ fn test_float_y() {
 
     crate::span::<_, ()>("X")
         .tile((0, 0))
-        .min_height(2)
+        .height(2)
         .float_y(Alignment::Middle)
         .draw(&mut grid);
 
@@ -155,7 +137,7 @@ fn test_float_y() {
     grid.clear();
     crate::span::<_, ()>("X")
         .tile((0, 0))
-        .min_height(2)
+        .height(2)
         .float_y(Alignment::End)
         .draw(&mut grid);
 

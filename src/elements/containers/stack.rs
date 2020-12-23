@@ -1,6 +1,6 @@
-use crate::{Element, Events, Input, Output};
+use crate::{Element, Events, Input, Output, Vec2};
 
-use super::{combine_cross_axes, Collection};
+use super::Collection;
 
 /// A simple stack of elements, where each one is drawn on top of one another. Created by the
 /// [`stack`] function.
@@ -35,11 +35,25 @@ where
             element.draw(output);
         }
     }
-    fn width(&self, height: Option<u16>) -> (u16, u16) {
-        combine_cross_axes(self.elements.iter().map(|element| element.width(height)))
+    fn ideal_width(&self, height: u16, max_width: Option<u16>) -> u16 {
+        self.elements
+            .iter()
+            .map(|element| element.ideal_width(height, max_width))
+            .max()
+            .unwrap_or_default()
     }
-    fn height(&self, width: Option<u16>) -> (u16, u16) {
-        combine_cross_axes(self.elements.iter().map(|element| element.height(width)))
+    fn ideal_height(&self, width: u16, max_height: Option<u16>) -> u16 {
+        self.elements
+            .iter()
+            .map(|element| element.ideal_height(width, max_height))
+            .max()
+            .unwrap_or_default()
+    }
+    fn ideal_size(&self, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        self.elements
+            .iter()
+            .map(|element| element.ideal_size(maximum))
+            .fold(Vec2::default(), Vec2::max)
     }
     fn handle(&self, input: Input, events: &mut dyn Events<Event>) {
         if self.broadcast_inputs {

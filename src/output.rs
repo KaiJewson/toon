@@ -7,6 +7,8 @@ use unicode_width::UnicodeWidthChar;
 use crate::{Cursor, Style, Vec2};
 
 /// An output to which elements draw themselves.
+///
+/// See [`Ext`] for some higher-level methods on outputs.
 pub trait Output {
     /// Get the size of the output.
     ///

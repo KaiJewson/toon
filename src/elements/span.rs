@@ -5,7 +5,7 @@ use unicode_width::UnicodeWidthChar;
 
 use crate::{
     output::{Ext as _, Output},
-    Element, Events, Input, Style,
+    Element, Events, Input, Style, Vec2,
 };
 
 /// A span of text, created by the [`span`] function.
@@ -28,6 +28,25 @@ pub struct Span<T, Event> {
     event: PhantomData<Event>,
 }
 
+impl<T: Display, Event> Span<T, Event> {
+    /// Get the width of the span.
+    pub fn width(&self) -> u16 {
+        let mut width = 0;
+
+        write!(
+            crate::util::WriteCharsFn(|c| {
+                width += c.width().unwrap_or(0) as u16;
+                Ok(())
+            }),
+            "{}",
+            self.text
+        )
+        .expect("formatting failed");
+
+        width
+    }
+}
+
 impl<T, Event> AsRef<Style> for Span<T, Event> {
     fn as_ref(&self) -> &Style {
         &self.style
@@ -45,23 +64,14 @@ impl<T: Display, Event> Element for Span<T, Event> {
     fn draw(&self, output: &mut dyn Output) {
         output.write((0, 0), &self.text, self.style);
     }
-    fn width(&self, _height: Option<u16>) -> (u16, u16) {
-        let mut width = 0;
-
-        write!(
-            crate::util::WriteCharsFn(|c| {
-                width += c.width().unwrap_or(0) as u16;
-                Ok(())
-            }),
-            "{}",
-            self.text
-        )
-        .expect("formatting failed");
-
-        (width, width)
+    fn ideal_width(&self, _height: u16, _max_width: Option<u16>) -> u16 {
+        self.width()
     }
-    fn height(&self, _width: Option<u16>) -> (u16, u16) {
-        (1, 1)
+    fn ideal_height(&self, _width: u16, _max_height: Option<u16>) -> u16 {
+        1
+    }
+    fn ideal_size(&self, _maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        Vec2::new(self.width(), 1)
     }
     fn handle(&self, _input: Input, _events: &mut dyn Events<Event>) {}
 }

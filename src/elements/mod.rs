@@ -5,7 +5,7 @@
 
 use std::fmt::Display;
 
-use crate::{input, Element, Input, Vec2};
+use crate::{input, Color, Element, Input, Vec2};
 
 pub mod containers;
 pub use containers::*;
@@ -108,80 +108,25 @@ pub trait ElementExt: Element + Sized {
         self.filter(Title::new(title))
     }
 
-    /// Set the minimum width of the element.
+    /// Set the width of the element.
     #[must_use]
-    fn min_width(self, width: u16) -> Filtered<Self, Size> {
+    fn width(self, width: u16) -> Filtered<Self, Size> {
         self.filter(Size {
-            min: Vec2::new(Some(width), None),
-            max: Vec2::new(None, None),
+            size: Vec2::new(Some(width), None),
         })
     }
-    /// Set the maximum width of the element.
+    /// Set the height of the element.
     #[must_use]
-    fn max_width(self, width: u16) -> Filtered<Self, Size> {
+    fn height(self, height: u16) -> Filtered<Self, Size> {
         self.filter(Size {
-            min: Vec2::new(None, None),
-            max: Vec2::new(Some(width), None),
+            size: Vec2::new(None, Some(height)),
         })
     }
-    /// Set the width range (inclusive) of the element.
+    /// Set the size of the element.
     #[must_use]
-    fn width_range(self, min: u16, max: u16) -> Filtered<Self, Size> {
+    fn size(self, size: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
         self.filter(Size {
-            min: Vec2::new(Some(min), None),
-            max: Vec2::new(Some(max), None),
-        })
-    }
-    /// Set the minimum height of the element.
-    #[must_use]
-    fn min_height(self, height: u16) -> Filtered<Self, Size> {
-        self.filter(Size {
-            min: Vec2::new(None, Some(height)),
-            max: Vec2::new(None, None),
-        })
-    }
-    /// Set the maximum height of the element.
-    #[must_use]
-    fn max_height(self, height: u16) -> Filtered<Self, Size> {
-        self.filter(Size {
-            min: Vec2::new(None, None),
-            max: Vec2::new(None, Some(height)),
-        })
-    }
-    /// Set the height range (inclusive) of the element.
-    #[must_use]
-    fn height_range(self, min: u16, max: u16) -> Filtered<Self, Size> {
-        self.filter(Size {
-            min: Vec2::new(None, Some(min)),
-            max: Vec2::new(None, Some(max)),
-        })
-    }
-    /// Set the minimum size of the element.
-    #[must_use]
-    fn min_size(self, size: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
-        self.filter(Size {
-            min: size.into().map(Some),
-            max: Vec2::new(None, None),
-        })
-    }
-    /// Set the maximum size of the element.
-    #[must_use]
-    fn max_size(self, size: impl Into<Vec2<u16>>) -> Filtered<Self, Size> {
-        self.filter(Size {
-            min: Vec2::new(None, None),
-            max: size.into().map(Some),
-        })
-    }
-    /// Set the size range (inclusive) of the element.
-    #[must_use]
-    fn size_range(
-        self,
-        min: impl Into<Vec2<u16>>,
-        max: impl Into<Vec2<u16>>,
-    ) -> Filtered<Self, Size> {
-        self.filter(Size {
-            min: min.into().map(Some),
-            max: max.into().map(Some),
+            size: size.into().map(Some),
         })
     }
 
@@ -204,7 +149,7 @@ pub trait ElementExt: Element + Sized {
     /// let element = element.mask_inputs(());
     /// ```
     ///
-    /// Only give the element mouse inputs:
+    /// Only give the element mouse inputs (uses the [`input!`](crate::input!) macro):
     ///
     /// ```
     /// # use toon::ElementExt;
@@ -256,6 +201,14 @@ pub trait ElementExt: Element + Sized {
     #[must_use]
     fn tile(self, offset: impl Into<Vec2<u16>>) -> Filtered<Self, Tile> {
         self.filter(Tile::new(offset.into().map(Some)))
+    }
+
+    /// Fill the background of the element.
+    #[must_use]
+    fn fill_background(self, color: impl Into<Color>) -> Filtered<Self, FillBackground> {
+        self.filter(FillBackground {
+            color: color.into(),
+        })
     }
 
     /// Erase the element's type by boxing it.

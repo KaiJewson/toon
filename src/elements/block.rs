@@ -37,11 +37,14 @@ impl<Event> Element for Block<Event> {
             }
         }
     }
-    fn width(&self, _height: Option<u16>) -> (u16, u16) {
-        (0, u16::MAX)
+    fn ideal_width(&self, _height: u16, _max_width: Option<u16>) -> u16 {
+        0
     }
-    fn height(&self, _width: Option<u16>) -> (u16, u16) {
-        (0, u16::MAX)
+    fn ideal_height(&self, _width: u16, _max_height: Option<u16>) -> u16 {
+        0
+    }
+    fn ideal_size(&self, _maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        Vec2::new(0, 0)
     }
     fn handle(&self, _input: Input, _events: &mut dyn Events<Event>) {}
 }

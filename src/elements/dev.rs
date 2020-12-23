@@ -10,8 +10,8 @@ use either_crate::Either;
 use futures_lite::stream::{Stream, StreamExt as _};
 
 use crate::{
-    input, Alignment, Border, Captured, Color, Element, ElementExt, End, Mouse, MouseButton,
-    MouseKind, Styled,
+    input, Alignment, Border, Captured, Color, Element, ElementExt, Mouse, MouseButton, MouseKind,
+    Styled,
 };
 
 /// The state of the developer tools.
@@ -133,12 +133,12 @@ impl Dev {
                 let mouse = input.mouse().unwrap();
                 EventKind::Resize(
                     if self.right_panel_resizing {
-                        Some(mouse.size.x - mouse.at.x)
+                        Some(mouse.size.x - mouse.at.x - 1)
                     } else {
                         None
                     },
                     if self.bottom_panel_resizing {
-                        Some(mouse.size.y - mouse.at.y)
+                        Some(mouse.size.y - mouse.at.y - 1)
                     } else {
                         None
                     },
@@ -193,11 +193,11 @@ impl Dev {
                 .foreground(if self.focus == Focus::RightDev && !self.abort_confirm {
                     Color::White
                 } else {
-                    Color::DarkGray
+                    Color::LightGray
                 })
                 .top_title(Alignment::Start),
         )
-        .min_width(self.right_panel_width)
+        .width(self.right_panel_width)
         .on(input!(Mouse(Press Left) at (0, _)), |_| {
             EventKind::SetRightPanelResizing
         })
@@ -218,14 +218,11 @@ impl Dev {
                     .foreground(if self.focus == Focus::BottomDev && !self.abort_confirm {
                         Color::White
                     } else {
-                        Color::DarkGray
+                        Color::LightGray
                     })
                     .top_title(Alignment::Start),
             )
-            .size_range(
-                (0, self.bottom_panel_height),
-                (u16::MAX, self.bottom_panel_height),
-            )
+            .size((0, self.bottom_panel_height))
             .on(input!(Mouse(Press Left) at (_, 0)), |_| {
                 EventKind::SetBottomPanelResizing
             })
@@ -240,11 +237,11 @@ impl Dev {
                     .foreground(if self.focus == Focus::Element && !self.abort_confirm {
                         Color::White
                     } else {
-                        Color::DarkGray
+                        Color::LightGray
                     })
                     .top_title(Alignment::Start),
             )
-            .size_range((2, 2), (u16::MAX, u16::MAX))
+            .size((2, 2))
             .on_passive(
                 input!(Mouse(Press Left) where (|m: Mouse| m.at.x == m.size.x.saturating_sub(1))),
                 |_| EventKind::SetRightPanelResizing.into(),
@@ -262,9 +259,8 @@ impl Dev {
             (
                 crate::span("Are you sure you sure you want to abort the process?"),
                 crate::row(
-                    crate::flow().bias(End::Start),
+                    crate::Static,
                     (
-                        crate::fill(Color::Default),
                         crate::span("Yes")
                             .filter(Border::THIN)
                             .on(input!(Mouse(Release Left)), |_| std::process::abort()),
@@ -273,9 +269,10 @@ impl Dev {
                             .on(input!(Mouse(Release Left)), |_| {
                                 EventKind::ToggleAbortConfirm
                             }),
-                        crate::fill(Color::Default),
                     ),
-                ),
+                )
+                .float_x(Alignment::Middle)
+                .fill_background(Color::Default),
             ),
         )
         .filter(Border::THICK)

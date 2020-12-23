@@ -1,4 +1,4 @@
-use std::cmp::max;
+use std::cmp;
 
 use crate::output::{Ext as _, Output};
 use crate::{Element, Events, Input, Mouse, Vec2};
@@ -25,12 +25,14 @@ impl Tile {
 impl Tile {
     /// Get the offset and size of the element.
     pub fn layout(self, element: impl Element, output_size: Vec2<u16>) -> (Vec2<u16>, Vec2<u16>) {
+        let size = element.ideal_size(output_size.map(Some));
+
         let (width, offset_x) = self.offset.x.map_or((output_size.x, 0), |offset| {
-            let width = max(element.width(None).0, 1);
+            let width = cmp::max(size.x, 1);
             (width, offset % width)
         });
         let (height, offset_y) = self.offset.y.map_or((output_size.y, 0), |offset| {
-            let height = max(element.height(Some(width)).0, 1);
+            let height = cmp::max(size.y, 1);
             (height, offset % height)
         });
         (Vec2::new(offset_x, offset_y), Vec2::new(width, height))
@@ -65,28 +67,6 @@ impl<Event> Filter<Event> for Tile {
                 element.draw(&mut output.area(Vec2 { x, y }, size).on_set_cursor(|_, _| {}));
             }
         }
-    }
-    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        let (min, max) = element.width(height);
-        (
-            min,
-            if self.offset.x.is_some() {
-                u16::MAX
-            } else {
-                max
-            },
-        )
-    }
-    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        let (min, max) = element.height(width);
-        (
-            min,
-            if self.offset.y.is_some() {
-                u16::MAX
-            } else {
-                max
-            },
-        )
     }
     fn handle<E: Element<Event = Event>>(
         &self,

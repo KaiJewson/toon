@@ -1,5 +1,3 @@
-use std::cmp;
-
 use crate::{Element, Vec2};
 
 use super::Filter;
@@ -7,32 +5,35 @@ use super::Filter;
 /// A filter that sets the size of an element.
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
 pub struct Size {
-    /// The minimum size of the element, if it's overridden.
-    pub min: Vec2<Option<u16>>,
-    /// The maximum size of the element, if it's overridden.
-    pub max: Vec2<Option<u16>>,
+    /// The size of the element, if it's overridden.
+    pub size: Vec2<Option<u16>>,
 }
 
 impl<Event> Filter<Event> for Size {
-    fn width<E: Element>(&self, element: E, height: Option<u16>) -> (u16, u16) {
-        if let (Some(min), Some(max)) = (self.min.x, self.max.x) {
-            // Avoid getting the element's width if we can
-            (min, max)
-        } else {
-            let (min, max) = element.width(height);
-            let min = self.min.x.unwrap_or(min);
-            (min, cmp::max(self.max.x.unwrap_or(max), min))
-        }
+    fn ideal_width<E: Element>(&self, element: E, height: u16, max_width: Option<u16>) -> u16 {
+        self.size
+            .x
+            .unwrap_or_else(|| element.ideal_width(height, max_width))
     }
-
-    fn height<E: Element>(&self, element: E, width: Option<u16>) -> (u16, u16) {
-        if let (Some(min), Some(max)) = (self.min.y, self.max.y) {
-            // Avoid getting the element's height if we can
-            (min, max)
+    fn ideal_height<E: Element>(&self, element: E, width: u16, max_height: Option<u16>) -> u16 {
+        self.size
+            .y
+            .unwrap_or_else(|| element.ideal_height(width, max_height))
+    }
+    fn ideal_size<E: Element>(&self, element: E, maximum: Vec2<Option<u16>>) -> Vec2<u16> {
+        if let Vec2 {
+            x: Some(x),
+            y: Some(y),
+        } = self.size
+        {
+            // Avoid getting the element's size if we can
+            Vec2::new(x, y)
         } else {
-            let (min, max) = element.height(width);
-            let min = self.min.y.unwrap_or(min);
-            (min, cmp::max(self.max.y.unwrap_or(max), min))
+            let element_size = element.ideal_size(maximum);
+            Vec2::new(
+                self.size.x.unwrap_or(element_size.x),
+                self.size.y.unwrap_or(element_size.y),
+            )
         }
     }
 }
