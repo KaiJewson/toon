@@ -4,12 +4,11 @@
 //!
 //! Toon's 1D container, [`Container1D`], can use multiple [layouts](Layout1D) to draw its elements.
 //!
-//! - [`Static`] is the simplest and fastest layout. It gives each element the minimum space it
-//! needs, and any extra space is left blank.
-//! - [`Stretch`] is more advanced and also fast. It gives each element except one the minimum space
-//! it needs, and then gives all the rest of the space to the one element.
-//! - [`Flow`] is the most advanced and the slowest. It gives each element the minimum space it
-//! needs, and then distributes all remaining space evenly among elements that support it.
+//! - [`Static`] gives each element as much space as it wants, and any extra space is left blank.
+//! - [`Stretch`] gives all the elements except one as much space as they want, and then fills the
+//! remaining space by growing that element.
+//! - [`Share`] gives each element as much space as it wants, and then shares all remaining space
+//! evenly.
 
 use std::iter;
 

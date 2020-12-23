@@ -3,7 +3,7 @@ use crate::{Color, Element, Output, Style, Styled, Vec2};
 use super::Filter;
 
 /// A filter that sets the background of an element, typically used through the
-/// [`background`](crate::ElementExt::background) method.
+/// [`fill_background`](crate::ElementExt::fill_background) method.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FillBackground {
     /// The color of the background.

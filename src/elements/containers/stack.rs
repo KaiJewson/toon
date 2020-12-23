@@ -4,6 +4,8 @@ use super::Collection;
 
 /// A simple stack of elements, where each one is drawn on top of one another. Created by the
 /// [`stack`] function.
+///
+/// To just fill the background of an element, use [`FillBackground`](crate::FillBackground).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct Stack<E> {

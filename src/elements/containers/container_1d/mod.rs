@@ -6,8 +6,8 @@ use crate::{Element, Events, Input, Vec2};
 
 use super::Collection;
 
-mod flow;
-pub use flow::{flow, End, Flow};
+mod share;
+pub use share::{share, End, Share};
 
 mod r#static;
 pub use r#static::Static;
@@ -15,7 +15,7 @@ pub use r#static::Static;
 mod stretch;
 pub use stretch::{stretch, Stretch};
 
-/// A 1-dimensional layout of elements.
+/// A 1-dimensional layout of elements, for use in a [`Container1D`].
 pub trait Layout1D<'a, C: Collection<'a>> {
     /// The layout of elements.
     ///

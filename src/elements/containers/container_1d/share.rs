@@ -2,22 +2,22 @@ use crate::Element;
 
 use super::{Axis, Collection, InnerElement, Layout1D};
 
-/// A generic dynamic [`Layout1D`], created by the [`flow`] function.
+/// A [`Layout1D`] that shares extra space evenly, created by the [`share`] function.
 ///
-/// The layout algorithm works by calculating the minimum required space for each element, and then
-/// giving out all extra space equally among the other elements if they support it.
+/// The layout algorithm works by giving each element as much space as it wants, and then
+/// sharing all remaining space evenly.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
-pub struct Flow {
-    /// The direction the flow container is biased towards.
+pub struct Share {
+    /// The direction the share container is biased towards.
     ///
-    /// If [`None`], the container will evenly distribute space among its flexible elements, even if
-    /// it results in there being extra space at the end. Otherwise, it will fill that extra space
-    /// by unevenly giving elements at one end more space.
+    /// If [`None`], the container will evenly share space, even if it results in there being extra
+    /// space at the end. Otherwise, it will fill that extra space by unevenly giving elements at
+    /// one end more space.
     pub bias: Option<End>,
 }
 
-impl Flow {
+impl Share {
     /// Set the bias of the container.
     ///
     /// The container will fill any extra space by giving more space to the elements at the given
@@ -29,7 +29,7 @@ impl Flow {
     }
 }
 
-impl<'a, C: Collection<'a>> Layout1D<'a, C> for Flow {
+impl<'a, C: Collection<'a>> Layout1D<'a, C> for Share {
     type Layout = Layout<<C as Collection<'a>>::Iter>;
 
     fn layout(
@@ -57,7 +57,7 @@ impl<'a, C: Collection<'a>> Layout1D<'a, C> for Flow {
     }
 }
 
-/// Calculate the layout of a flow.
+/// Calculate the layout of a [`Share`].
 ///
 /// The first element of the tuple is how much the elements are able to grow along on the main
 /// axis. The second element of the tuple gives the index from the front (start bias) or back
@@ -155,13 +155,13 @@ pub enum End {
     End,
 }
 
-/// Create a new [`Flow`] layout.
+/// Create a new [`Share`] layout.
 ///
 /// By default it will not be biased to either end; this means that it will not always totally fill
 /// the container.
 #[must_use]
-pub fn flow() -> Flow {
-    Flow { bias: None }
+pub fn share() -> Share {
+    Share { bias: None }
 }
 
 #[test]
@@ -169,7 +169,7 @@ fn test_too_large() {
     let mut grid = crate::Grid::new((5, 6));
 
     crate::column::<_, _, ()>(
-        flow(),
+        share(),
         (
             crate::span("Foo"),
             crate::span("Bar"),
@@ -195,7 +195,7 @@ fn test_biases() {
     let mut grid = crate::Grid::new((5, 6));
 
     let mut three_lines = crate::column::<_, _, ()>(
-        flow(),
+        share(),
         (
             crate::span("Top Line").tile_y(0),
             crate::empty(),
@@ -228,7 +228,7 @@ fn test_biases() {
     );
 
     crate::row::<_, _, ()>(
-        flow().bias(End::Start),
+        share().bias(End::Start),
         (
             crate::empty(),
             crate::span("1"),

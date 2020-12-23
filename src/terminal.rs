@@ -240,6 +240,9 @@ impl<B: Backend> Terminal<B> {
 
                 self.cursor_pos = Vec2::new(
                     min(
+                        // TODO: The terminal's idea of how wide a character is doesn't always line
+                        // up with unicode-width. For example in iTerm2 the family emoji, which is
+                        // 8 wide in Unicode displays as 2 wide.
                         pos.x + if new_contents_double { 2 } else { 1 },
                         self.buffer.grid.width() - 1,
                     ),
