@@ -7,7 +7,7 @@
 A simple, declarative, and modular TUI library.
 
 In Toon, every application starts out with some **state**. Then, using your state you create an
-**element** (the [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.trait) trait). You pass
+**element** (the [`Element`](https://docs.rs/toon/0.1/toon/trait.Element.html) trait). You pass
 your element to Toon using
 [`Terminal::draw`](https://docs.rs/toon/0.1/toon/struct.Terminal.html#method.draw) and it
 renders it to the screen, before waiting for user input. When that occurs, Toon uses your

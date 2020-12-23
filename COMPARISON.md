@@ -49,7 +49,7 @@ intercept and use it.
 
 ## Output
 
-Crusive and tui both use a concrete struct for outputs, called `Printer` and `Buffer`, and they
+Cursive and tui both use a concrete struct for outputs, called `Printer` and `Buffer`, and they
 allow you to write to the terminal. Toon on the other hand uses a trait for this purpose, the
 `Output` trait. This allows for features like filters to be efficiently implemented, as you don't
 have to create a whole new buffer just to later filter its contents and write it to the actual

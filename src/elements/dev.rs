@@ -1,4 +1,7 @@
 //! Developer tools for Toon.
+//!
+//! See the [example](https://github.com/KaiJewson/toon/blob/master/examples/dev.rs) for how to use
+//! this.
 
 #[cfg(not(feature = "either"))]
 compile_error!("Dev mode currently requires `either` feature to be active.");
@@ -361,7 +364,7 @@ impl Focus {
 }
 
 /// An event in your application, either caused by developer tools or by your element.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub enum AppEvent<T> {
     /// An event in the developer tools themselves.
     Dev(Event),
@@ -370,10 +373,10 @@ pub enum AppEvent<T> {
 }
 
 /// An event in developer tools.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Event(EventKind);
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug)]
 enum EventKind {
     Focus(Focus),
     ToggleAbortConfirm,
@@ -391,7 +394,7 @@ impl<T> From<EventKind> for AppEvent<T> {
 }
 
 /// Create a stream of developer tools events from a program's captured stdio. This stream will
-/// never terminate.
+/// terminate only when the terminal where the [`Captured`] came from is destroyed.
 ///
 /// Passing these events to a developer tools will display them on the bottom panel, and it will
 /// all be printed to the standard error when the program exits.
