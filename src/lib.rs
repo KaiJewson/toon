@@ -60,7 +60,6 @@
 //! [`Collection`](https://docs.rs/toon/0.1/toon/elements/containers/trait.Collection.html) for
 //! `Either`.
 #![cfg_attr(feature = "doc_cfg", feature(doc_cfg))]
-#![forbid(unsafe_code)]
 #![warn(
     clippy::cargo,
     clippy::pedantic,

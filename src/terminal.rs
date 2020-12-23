@@ -2,6 +2,10 @@ use std::cmp::min;
 use std::error::Error as StdError;
 use std::fmt::{self, Display, Formatter};
 use std::io::{self, IoSliceMut, Read};
+#[cfg(unix)]
+use std::os::unix::io::{AsRawFd, FromRawFd, IntoRawFd, RawFd};
+#[cfg(windows)]
+use std::os::windows::io::{AsRawHandle, FromRawHandle, IntoRawHandle, RawHandle};
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use os_pipe::PipeReader;
@@ -384,6 +388,44 @@ impl<B: StdError + 'static> StdError for Error<B> {
 /// [`Unblock`](https://docs.rs/blocking/1/blocking/struct.Unblock.html) or similar type.
 #[derive(Debug)]
 pub struct Captured(PipeReader);
+
+#[cfg(unix)]
+impl AsRawFd for Captured {
+    fn as_raw_fd(&self) -> RawFd {
+        self.0.as_raw_fd()
+    }
+}
+#[cfg(unix)]
+impl FromRawFd for Captured {
+    unsafe fn from_raw_fd(fd: RawFd) -> Self {
+        Self(PipeReader::from_raw_fd(fd))
+    }
+}
+#[cfg(unix)]
+impl IntoRawFd for Captured {
+    fn into_raw_fd(self) -> RawFd {
+        self.0.into_raw_fd()
+    }
+}
+
+#[cfg(windows)]
+impl AsRawHandle for Captured {
+    fn as_raw_handle(&self) -> RawHandle {
+        self.0.as_raw_handle()
+    }
+}
+#[cfg(windows)]
+impl FromRawHandle for Captured {
+    unsafe fn from_raw_handle(handle: RawHandle) -> Self {
+        Self(PipeReader::from_raw_handle(handle))
+    }
+}
+#[cfg(windows)]
+impl IntoRawHandle for Captured {
+    fn into_raw_handle(self) -> RawHandle {
+        self.0.into_raw_handle()
+    }
+}
 
 impl Read for Captured {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
