@@ -107,20 +107,24 @@ impl<B: Backend> Terminal<B> {
     pub async fn draw<E: Element>(&mut self, element: E) -> Result<Vec<E::Event>, Error<B::Error>> {
         // Update title
         let mut old_title_bytes = self.title.bytes();
-        let title_is_same = element
-            .title(&mut crate::util::WriteFn(|s| {
-                for byte in s.bytes() {
-                    if old_title_bytes.next() != Some(byte) {
-                        return Err(fmt::Error);
+        let title_is_same = !self.title.is_empty()
+            && element
+                .title(&mut crate::util::WriteFn(|s| {
+                    for byte in s.bytes() {
+                        if old_title_bytes.next() != Some(byte) {
+                            return Err(fmt::Error);
+                        }
                     }
-                }
-                Ok(())
-            }))
-            .is_ok()
+                    Ok(())
+                }))
+                .is_ok()
             && old_title_bytes.len() == 0;
         if !title_is_same {
             self.title.clear();
             element.title(&mut self.title).unwrap();
+            if self.title.is_empty() {
+                self.title.push_str("Toon App");
+            }
             self.backend.as_mut().unwrap().set_title(&self.title)?;
         }
 

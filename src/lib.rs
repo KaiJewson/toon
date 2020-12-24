@@ -73,6 +73,8 @@
     // `as u16` is used when we need to get the width of a string that is guaranteed not to exceed
     // u16.
     clippy::cast_possible_truncation,
+    // `as u16` is used to cast from a float.
+    clippy::cast_sign_loss,
     // socket2 hasn't released its new version yet
     clippy::multiple_crate_versions,
     clippy::non_ascii_literal,

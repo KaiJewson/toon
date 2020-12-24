@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{Element, Events, Input, Output, Vec2};
 
 use super::Collection;
@@ -65,6 +67,12 @@ where
         } else if let Some(last) = self.elements.iter().next_back() {
             last.handle(input, events);
         }
+    }
+    fn title(&self, title: &mut dyn fmt::Write) -> fmt::Result {
+        if let Some(last) = self.elements.iter().next_back() {
+            last.title(title)?;
+        }
+        Ok(())
     }
 }
 

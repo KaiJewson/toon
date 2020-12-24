@@ -279,6 +279,7 @@ impl Dev {
             ),
         )
         .filter(Border::THICK)
+        .title("Are you sure you want to abort the process?")
         .on_passive(input!(Mouse(Release Left)), |_| {
             // Clicking on the popup will cause two ToggleAbortConfirm events, one on
             // the background and one here, which has the effect of keeping the popup

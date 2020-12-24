@@ -211,6 +211,12 @@ pub trait ElementExt: Element + Sized {
         })
     }
 
+    /// Set the ratio of the element.
+    #[must_use]
+    fn ratio(self, ratio: f64) -> Filtered<Self, Ratio> {
+        self.filter(Ratio { ratio })
+    }
+
     /// Erase the element's type by boxing it.
     #[must_use]
     fn boxed<'a>(self) -> Box<dyn Element<Event = Self::Event> + 'a>
