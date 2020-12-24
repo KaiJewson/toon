@@ -208,7 +208,7 @@ impl Line {
         self.cells.resize(
             usize::from(new_len),
             Cell(CellInner::Char {
-                contents: SmartString::from(" "),
+                contents: " ".into(),
                 double: false,
                 style: Style::default(),
             }),
@@ -220,7 +220,7 @@ impl Line {
             ..
         })) = self.cells.last_mut()
         {
-            *contents = SmartString::from(" ");
+            *contents = " ".into();
             *double = false;
         }
     }
@@ -283,7 +283,7 @@ impl Output for Line {
                         ..
                     } => {
                         self.cells[x + 1].0 = CellInner::Char {
-                            contents: SmartString::from(" "),
+                            contents: " ".into(),
                             double: false,
                             style: old_style,
                         };
@@ -295,7 +295,7 @@ impl Output for Line {
                             double: double @ true,
                             ..
                         } => {
-                            *contents = SmartString::from(" ");
+                            *contents = " ".into();
                             *double = false;
                         }
                         _ => unreachable!(),
@@ -323,7 +323,7 @@ impl Output for Line {
                         CellInner::Char {
                             contents, double, ..
                         } => {
-                            *contents = SmartString::from(" ");
+                            *contents = " ".into();
                             *double = false;
                         }
                         _ => unreachable!(),
@@ -336,7 +336,7 @@ impl Output for Line {
                 } = old_second
                 {
                     self.cells[x + 2].0 = CellInner::Char {
-                        contents: SmartString::from(" "),
+                        contents: " ".into(),
                         double: false,
                         style: old_style,
                     };
